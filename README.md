@@ -137,6 +137,8 @@ blackjack-simulator run configs/standard_6_deck_s17.yaml --rounds 100
 blackjack-simulator trace configs/standard_6_deck_s17.yaml --rounds 1
 blackjack-simulator trace configs/standard_6_deck_s17.yaml --rounds 1 --json-file trace.json
 blackjack-simulator trace configs/standard_6_deck_s17.yaml --event-type card_dealt
+blackjack-simulator audit configs/standard_6_deck_s17.yaml --rounds 100
+blackjack-simulator audit configs/standard_6_deck_s17.yaml --rounds 10 --strict
 blackjack-simulator run configs/validation_1m.yaml
 ```
 

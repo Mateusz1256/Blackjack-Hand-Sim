@@ -5,8 +5,10 @@ from argparse import ArgumentParser, Namespace
 from collections.abc import Sequence
 from pathlib import Path
 
+from blackjack_simulator.audit import run_config_audit
 from blackjack_simulator.configuration import ConfigurationError, load_app_config
 from blackjack_simulator.engine import run_simulation, run_worker_simulations
+from blackjack_simulator.output.audit_output import render_audit_report
 from blackjack_simulator.output.console import render_console_report
 from blackjack_simulator.output.csv_output import report_to_csv
 from blackjack_simulator.output.json_output import report_to_json
@@ -29,6 +31,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _run(args)
         if args.command == "trace":
             return _trace(args)
+        if args.command == "audit":
+            return _audit(args)
     except ConfigurationError as exc:
         print(f"Configuration error: {exc}", file=sys.stderr)
         return 2
@@ -67,6 +71,13 @@ def _build_parser() -> ArgumentParser:
         choices=["split", "double", "surrender", "blackjack", "insurance"],
         help="Only show rounds containing the selected feature.",
     )
+
+    audit_parser = subparsers.add_parser("audit")
+    audit_parser.add_argument("config", type=Path)
+    audit_parser.add_argument("--rounds", type=int)
+    audit_parser.add_argument("--seed", type=int)
+    audit_parser.add_argument("--workers", type=int)
+    audit_parser.add_argument("--strict", action="store_true")
 
     return parser
 
@@ -153,6 +164,13 @@ def _trace(args: Namespace) -> int:
         args.json_file.write_text(trace_events_to_json(events), encoding="utf-8")
     print(render_trace_report(events))
     return 0
+
+
+def _audit(args: Namespace) -> int:
+    app_config = load_app_config(args.config, overrides=_overrides(args))
+    report = run_config_audit(app_config)
+    print(render_audit_report(report))
+    return report.exit_code(strict=bool(args.strict))
 
 
 def _overrides(args: Namespace) -> dict[str, int]:

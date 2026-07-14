@@ -114,3 +114,24 @@ def test_cli_invalid_config_returns_error(tmp_path: Path, capsys) -> None:  # ty
 
     assert exit_code == 2
     assert "simulation.rounds" in capsys.readouterr().err
+
+
+def test_cli_audit_smoke(tmp_path: Path, capsys) -> None:  # type: ignore[no-untyped-def]
+    config_path = write_config(tmp_path)
+
+    exit_code = main(["audit", str(config_path), "--rounds", "100"])
+
+    output = capsys.readouterr().out
+    assert exit_code == 0
+    assert "Audit report" in output
+    assert "PASS bankroll.final_balance" in output
+
+
+def test_cli_audit_strict_fails_on_warning(tmp_path: Path, capsys) -> None:  # type: ignore[no-untyped-def]
+    config_path = write_config(tmp_path)
+
+    exit_code = main(["audit", str(config_path), "--rounds", "1", "--strict"])
+
+    output = capsys.readouterr().out
+    assert exit_code == 1
+    assert "WARNING audit.sample_size" in output

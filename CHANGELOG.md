@@ -14,6 +14,7 @@ Versioning.
 - Typed trace event model and optional in-memory collector for round replay
   groundwork.
 - CLI trace report rendering with event-type/feature filters and JSON export.
+- Engine audit command with PASS/WARNING/FAIL/SKIPPED checks and strict mode.
 
 ## [1.0.0] - 2026-07-14
 
