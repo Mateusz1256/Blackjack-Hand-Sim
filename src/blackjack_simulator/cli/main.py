@@ -6,9 +6,15 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from blackjack_simulator.audit import run_config_audit
+from blackjack_simulator.comparison import ComparisonMode, compare_configurations
 from blackjack_simulator.configuration import ConfigurationError, load_app_config
 from blackjack_simulator.engine import run_simulation, run_worker_simulations
 from blackjack_simulator.output.audit_output import render_audit_report
+from blackjack_simulator.output.comparison_output import (
+    comparison_to_csv,
+    comparison_to_json,
+    render_comparison_report,
+)
 from blackjack_simulator.output.console import render_console_report
 from blackjack_simulator.output.csv_output import report_to_csv
 from blackjack_simulator.output.json_output import report_to_json
@@ -33,6 +39,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _trace(args)
         if args.command == "audit":
             return _audit(args)
+        if args.command == "compare":
+            return _compare(args)
     except ConfigurationError as exc:
         print(f"Configuration error: {exc}", file=sys.stderr)
         return 2
@@ -78,6 +86,19 @@ def _build_parser() -> ArgumentParser:
     audit_parser.add_argument("--seed", type=int)
     audit_parser.add_argument("--workers", type=int)
     audit_parser.add_argument("--strict", action="store_true")
+
+    compare_parser = subparsers.add_parser("compare")
+    compare_parser.add_argument("configs", nargs="+", type=Path)
+    compare_parser.add_argument("--rounds", type=int)
+    compare_parser.add_argument("--seed", type=int)
+    compare_parser.add_argument("--workers", type=int)
+    compare_parser.add_argument(
+        "--mode",
+        choices=[mode.value for mode in ComparisonMode],
+        default=ComparisonMode.INDEPENDENT_SEEDS.value,
+    )
+    compare_parser.add_argument("--json-file", type=Path)
+    compare_parser.add_argument("--csv-file", type=Path)
 
     return parser
 
@@ -171,6 +192,24 @@ def _audit(args: Namespace) -> int:
     report = run_config_audit(app_config)
     print(render_audit_report(report))
     return report.exit_code(strict=bool(args.strict))
+
+
+def _compare(args: Namespace) -> int:
+    try:
+        report = compare_configurations(
+            args.configs,
+            overrides=_overrides(args),
+            mode=ComparisonMode(args.mode),
+        )
+    except ValueError as exc:
+        print(f"Comparison error: {exc}", file=sys.stderr)
+        return 2
+    if args.json_file is not None:
+        args.json_file.write_text(comparison_to_json(report), encoding="utf-8")
+    if args.csv_file is not None:
+        args.csv_file.write_text(comparison_to_csv(report), encoding="utf-8")
+    print(render_comparison_report(report))
+    return 0
 
 
 def _overrides(args: Namespace) -> dict[str, int]:

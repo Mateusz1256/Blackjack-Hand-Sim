@@ -15,6 +15,8 @@ Versioning.
   groundwork.
 - CLI trace report rendering with event-type/feature filters and JSON export.
 - Engine audit command with PASS/WARNING/FAIL/SKIPPED checks and strict mode.
+- Configuration comparison service and CLI with baseline deltas plus JSON/CSV
+  export.
 
 ## [1.0.0] - 2026-07-14
 
