@@ -17,3 +17,5 @@ Versioning.
   RNG shuffling, and S17/H17 dealer drawing behavior.
 - Basic round flow with hit, stand, blackjack, bust, push, flat betting,
   bankroll updates, and net-result settlement.
+- Table-driven basic strategy profiles for S17 and H17 with hard, soft, and
+  pair tables plus legal-action fallback.

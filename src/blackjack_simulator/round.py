@@ -95,6 +95,8 @@ def play_round(
         if action is Action.HIT:
             player.add_card(shoe.draw())
             continue
+        msg = f"unsupported action for basic round flow: {action}"
+        raise ValueError(msg)
 
     if not player.is_bust:
         play_dealer_hand(dealer, shoe, dealer_rules)

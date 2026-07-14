@@ -10,9 +10,16 @@ from blackjack_simulator.engine import (
 from blackjack_simulator.hand import Hand
 from blackjack_simulator.rules import DealerRules
 from blackjack_simulator.shoe import Shoe
+from blackjack_simulator.strategies import (
+    BasicStrategy,
+    BasicStrategyProfile,
+    basic_strategy_for_rules,
+)
 
 __all__ = [
     "Action",
+    "BasicStrategy",
+    "BasicStrategyProfile",
     "Card",
     "DealerRules",
     "Hand",
@@ -21,6 +28,7 @@ __all__ = [
     "SimulationConfig",
     "SimulationResult",
     "__version__",
+    "basic_strategy_for_rules",
     "run_simulation",
 ]
 

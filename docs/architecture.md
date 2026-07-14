@@ -3,7 +3,8 @@
 This document describes the planned architecture. The current codebase contains
 the project foundation, card/hand primitives, deterministic shoe behavior, and
 dealer S17/H17 drawing rules. It also contains a basic no-split/no-double round
-flow, net settlement, flat betting, and multi-round bankroll orchestration.
+flow, net settlement, flat betting, table-driven basic strategy, and multi-round
+bankroll orchestration.
 
 ## Module Diagram
 
@@ -56,6 +57,12 @@ blackjack payout where it changes expected decisions.
 
 Strategies must return legal fallback actions when a preferred action is not
 available under the active rules.
+
+The current implementation provides S17 and H17 table profiles. Tables can
+prefer double, split, or surrender-shaped decisions, but the strategy maps them
+through the set of legal actions. With the current round engine, the default
+legal set is hit/stand, so basic strategy never asks the round flow to execute
+features that are scheduled for later tasks.
 
 ## Bankroll Settlement
 

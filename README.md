@@ -39,8 +39,8 @@ python -m pip install -e ".[dev]"
 
 ## Quick Start
 
-At this stage the package exposes card, hand, shoe, dealer-rule, basic round,
-settlement, flat betting, and simple simulation primitives.
+At this stage the package exposes card, hand, shoe, dealer-rule, basic strategy,
+basic round, settlement, flat betting, and simple simulation primitives.
 
 ```python
 import random
@@ -54,9 +54,9 @@ from blackjack_simulator import (
     Rank,
     Shoe,
     SimulationConfig,
+    basic_strategy_for_rules,
     run_simulation,
 )
-from blackjack_simulator.round import FixedActionStrategy
 
 hand = Hand(cards=[Card(Rank.ACE), Card(Rank.KING)])
 print(hand.value)
@@ -72,7 +72,7 @@ config = SimulationConfig(
 result = run_simulation(
     shoe=shoe,
     config=config,
-    player_strategy=FixedActionStrategy(Action.STAND),
+    player_strategy=basic_strategy_for_rules(config.dealer_rules),
 )
 print(result.final_bankroll)
 ```

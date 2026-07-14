@@ -32,3 +32,11 @@ surrender, peek, ENHC, OBO, insurance, and even money.
 - Effect: a natural player blackjack against a non-blackjack dealer returns net
   profit equal to `current_bet * blackjack_payout`. The returned stake is not
   included in the settlement result.
+
+## Basic Strategy Profiles
+
+- Field: selected by `basic_strategy_for_rules(DealerRules(...))`
+- Values: `s17`, `h17`
+- Default: S17 when `DealerRules.hits_soft_17` is false
+- Effect: hard, soft, and pair tables choose preferred basic-strategy decisions.
+  Decisions whose execution is not currently legal fall back to hit or stand.
