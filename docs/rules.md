@@ -109,11 +109,15 @@ surrender, peek, ENHC, OBO, insurance, and even money.
 ## Betting Systems
 
 - Fields: betting strategy objects passed to `run_simulation`
-- Values: flat, Martingale, Paroli, Fibonacci, D'Alembert
+- Values: flat, Martingale, Paroli, Fibonacci, D'Alembert, true-count spread
 - Default: flat betting from `SimulationConfig.betting_amount`
 - Effect: the betting strategy selects the initial wager once per round and is
   updated once after the round net result. Split hands do not update the betting
   system separately.
+- YAML: `player.betting_strategy.type` supports `flat`, `martingale`, `paroli`,
+  `fibonacci`, `dalembert`, and `true_count_spread`. Use `amount` or
+  `base_amount` for the unit. `paroli` accepts `max_wins`; `true_count_spread`
+  accepts a `spread` mapping of true-count thresholds to bet multipliers.
 
 ## Table Limits and Bankroll
 
@@ -138,7 +142,9 @@ surrender, peek, ENHC, OBO, insurance, and even money.
 - Fields: `CountBasedInsuranceStrategy`, `TrueCountSpreadBettingStrategy`
 - Effect: insurance can be taken only when true count reaches a configured
   threshold. Betting spread chooses the initial round wager from true-count
-  thresholds while still respecting table limits and bankroll checks.
+  thresholds while still respecting table limits and bankroll checks. YAML
+  count-spread betting automatically creates a Hi-Lo counter for the simulation
+  and passes it through the round flow.
 
 ## Statistics and Reports
 

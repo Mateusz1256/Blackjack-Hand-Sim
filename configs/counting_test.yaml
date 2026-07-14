@@ -10,7 +10,7 @@ rules:
   decks: 6
   penetration: 0.75
   shuffle_after_each_round: false
-  blackjack_payout: 1.2
+  blackjack_payout: 1.5
   dealer:
     hits_soft_17: true
     peeks_for_blackjack: true
@@ -42,7 +42,7 @@ player:
   insurance_strategy:
     type: never
   betting_strategy:
-    type: flat
+    type: true count spread
     amount: 10
 
 output:

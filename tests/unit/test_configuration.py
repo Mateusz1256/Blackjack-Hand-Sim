@@ -2,6 +2,14 @@ from decimal import Decimal
 
 import pytest
 
+from blackjack_simulator.betting import (
+    DAlembertBettingStrategy,
+    FibonacciBettingStrategy,
+    FlatBettingStrategy,
+    MartingaleBettingStrategy,
+    ParoliBettingStrategy,
+    TrueCountSpreadBettingStrategy,
+)
 from blackjack_simulator.configuration import (
     ConfigurationError,
     load_app_config,
@@ -72,6 +80,65 @@ def test_parse_config_applies_overrides() -> None:
     assert config.simulation.rounds == 5
     assert config.simulation.seed == 999
     assert config.simulation.workers == 2
+
+
+@pytest.mark.parametrize(
+    ("strategy_type", "expected_type"),
+    [
+        ("flat", FlatBettingStrategy),
+        ("martingale", MartingaleBettingStrategy),
+        ("paroli", ParoliBettingStrategy),
+        ("fibonacci", FibonacciBettingStrategy),
+        ("dalembert", DAlembertBettingStrategy),
+    ],
+)
+def test_parse_config_creates_progressive_betting_strategies(
+    strategy_type: str,
+    expected_type: type[object],
+) -> None:
+    text = valid_config_text().replace("type: flat", f"type: {strategy_type}")
+    config = parse_app_config(text)
+    shoe = config.create_shoe()
+
+    strategy = config.create_betting_strategy(shoe, config.create_card_counter())
+
+    assert isinstance(strategy, expected_type)
+    assert strategy.next_bet(Decimal("100")) == Decimal("10")
+
+
+def test_parse_config_creates_paroli_with_table_limits() -> None:
+    text = valid_config_text().replace(
+        "amount: 10",
+        "amount: 5\n"
+        "    max_wins: 2\n"
+        "    table_limits:\n"
+        "      minimum: 10\n"
+        "      maximum: 25",
+    )
+    text = text.replace("type: flat", "type: paroli")
+    config = parse_app_config(text)
+    shoe = config.create_shoe()
+
+    strategy = config.create_betting_strategy(shoe, config.create_card_counter())
+
+    assert isinstance(strategy, ParoliBettingStrategy)
+    assert strategy.next_bet(Decimal("100")) == Decimal("10")
+
+
+def test_parse_config_creates_true_count_spread_betting_strategy() -> None:
+    text = valid_config_text().replace(
+        "type: flat\n    amount: 10",
+        "type: true_count_spread\n    amount: 10\n    spread:\n      0: 1\n      2: 4",
+    )
+    config = parse_app_config(text)
+    shoe = config.create_shoe()
+    card_counter = config.create_card_counter()
+
+    strategy = config.create_betting_strategy(shoe, card_counter)
+
+    assert card_counter is not None
+    assert isinstance(strategy, TrueCountSpreadBettingStrategy)
+    assert strategy.next_bet(Decimal("100")) == Decimal("10")
 
 
 def test_invalid_config_raises_clear_error() -> None:

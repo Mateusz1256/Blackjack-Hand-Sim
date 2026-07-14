@@ -81,7 +81,12 @@ class WorkerSimulationResult:
 class FlatBettingStrategyFactory:
     amount: Decimal
 
-    def __call__(self) -> BettingStrategy:
+    def __call__(
+        self,
+        shoe: Shoe | None = None,
+        card_counter: CardCounter | None = None,
+    ) -> BettingStrategy:
+        del shoe, card_counter
         return FlatBettingStrategy(self.amount)
 
 
@@ -94,7 +99,8 @@ class _WorkerSimulationJob:
     shoe_config: WorkerShoeConfig
     player_strategy_factory: Callable[[], PlayerStrategy]
     insurance_strategy_factory: Callable[[], InsuranceStrategy]
-    betting_strategy_factory: Callable[[], BettingStrategy]
+    betting_strategy_factory: Callable[[Shoe, CardCounter | None], BettingStrategy]
+    card_counter_factory: Callable[[], CardCounter] | None
 
 
 def run_simulation(
@@ -182,7 +188,10 @@ def run_worker_simulations(
     insurance_strategy_factory: Callable[
         [], InsuranceStrategy
     ] = NeverInsuranceStrategy,
-    betting_strategy_factory: Callable[[], BettingStrategy] | None = None,
+    betting_strategy_factory: (
+        Callable[[Shoe, CardCounter | None], BettingStrategy] | None
+    ) = None,
+    card_counter_factory: Callable[[], CardCounter] | None = None,
     use_processes: bool = True,
 ) -> SimulationResult:
     if betting_strategy_factory is None:
@@ -209,6 +218,7 @@ def run_worker_simulations(
             player_strategy_factory=player_strategy_factory,
             insurance_strategy_factory=insurance_strategy_factory,
             betting_strategy_factory=betting_strategy_factory,
+            card_counter_factory=card_counter_factory,
         )
         for worker_index, rounds in enumerate(
             split_worker_rounds(config.rounds, worker_count),
@@ -238,17 +248,22 @@ def run_worker_simulations(
 
 def _run_worker_simulation_job(job: _WorkerSimulationJob) -> WorkerSimulationResult:
     collector = StatisticsCollector(initial_bankroll=job.config.initial_bankroll)
+    shoe = Shoe(
+        decks=job.shoe_config.decks,
+        penetration=job.shoe_config.penetration,
+        rng=Random(job.seed),
+        shuffle_after_each_round=job.shoe_config.shuffle_after_each_round,
+    )
+    card_counter = (
+        job.card_counter_factory() if job.card_counter_factory is not None else None
+    )
     result = run_simulation(
-        shoe=Shoe(
-            decks=job.shoe_config.decks,
-            penetration=job.shoe_config.penetration,
-            rng=Random(job.seed),
-            shuffle_after_each_round=job.shoe_config.shuffle_after_each_round,
-        ),
+        shoe=shoe,
         config=job.config,
         player_strategy=job.player_strategy_factory(),
         insurance_strategy=job.insurance_strategy_factory(),
-        betting_strategy=job.betting_strategy_factory(),
+        betting_strategy=job.betting_strategy_factory(shoe, card_counter),
+        card_counter=card_counter,
         statistics_collector=collector,
         store_rounds=False,
     )

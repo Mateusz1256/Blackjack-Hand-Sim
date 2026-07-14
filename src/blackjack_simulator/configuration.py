@@ -10,10 +10,19 @@ from typing import Any
 
 import yaml
 
-from blackjack_simulator.betting import FlatBettingStrategy
+from blackjack_simulator.betting import (
+    DAlembertBettingStrategy,
+    FibonacciBettingStrategy,
+    FlatBettingStrategy,
+    MartingaleBettingStrategy,
+    ParoliBettingStrategy,
+    TableLimits,
+    TrueCountSpreadBettingStrategy,
+)
 from blackjack_simulator.betting.base import BettingStrategy
+from blackjack_simulator.counting import HiLoCounter
+from blackjack_simulator.counting.base import CardCounter
 from blackjack_simulator.engine import (
-    FlatBettingStrategyFactory,
     SimulationConfig,
     WorkerShoeConfig,
 )
@@ -66,11 +75,73 @@ class OutputSettings:
 
 
 @dataclass(frozen=True, slots=True)
+class BettingSettings:
+    strategy_type: str
+    base_amount: Decimal
+    table_limits: TableLimits | None = None
+    max_wins: int = 3
+    spread: dict[Decimal, Decimal] | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class ConfiguredBettingStrategyFactory:
+    settings: BettingSettings
+
+    def __call__(
+        self,
+        shoe: Shoe,
+        card_counter: CardCounter | None = None,
+    ) -> BettingStrategy:
+        strategy_type = self.settings.strategy_type
+        if strategy_type == "flat":
+            return FlatBettingStrategy(
+                amount=self.settings.base_amount,
+                table_limits=self.settings.table_limits,
+            )
+        if strategy_type == "martingale":
+            return MartingaleBettingStrategy(
+                base_amount=self.settings.base_amount,
+                table_limits=self.settings.table_limits,
+            )
+        if strategy_type == "paroli":
+            return ParoliBettingStrategy(
+                base_amount=self.settings.base_amount,
+                table_limits=self.settings.table_limits,
+                max_wins=self.settings.max_wins,
+            )
+        if strategy_type == "fibonacci":
+            return FibonacciBettingStrategy(
+                base_amount=self.settings.base_amount,
+                table_limits=self.settings.table_limits,
+            )
+        if strategy_type == "dalembert":
+            return DAlembertBettingStrategy(
+                base_amount=self.settings.base_amount,
+                table_limits=self.settings.table_limits,
+            )
+        if strategy_type == "true_count_spread":
+            if card_counter is None:
+                msg = "true_count_spread betting requires a card counter"
+                raise ConfigurationError(msg)
+            return TrueCountSpreadBettingStrategy(
+                counter=card_counter,
+                base_amount=self.settings.base_amount,
+                spread=self.settings.spread or {Decimal("0"): Decimal("1")},
+                remaining_cards_provider=lambda: shoe.remaining_cards,
+                table_limits=self.settings.table_limits,
+            )
+
+        msg = f"unsupported player.betting_strategy.type: {strategy_type}"
+        raise ConfigurationError(msg)
+
+
+@dataclass(frozen=True, slots=True)
 class AppConfig:
     simulation: SimulationSettings
     shoe: ShoeSettings
     engine_config: SimulationConfig
     output: OutputSettings
+    betting: BettingSettings
     insurance_strategy_type: str = "never"
 
     def create_shoe(self) -> Shoe:
@@ -104,8 +175,23 @@ class AppConfig:
         msg = f"unsupported insurance strategy: {self.insurance_strategy_type}"
         raise ConfigurationError(msg)
 
-    def create_betting_strategy(self) -> BettingStrategy:
-        return FlatBettingStrategy(self.engine_config.betting_amount)
+    def create_card_counter(self) -> CardCounter | None:
+        if self.betting.strategy_type == "true_count_spread":
+            return HiLoCounter()
+        return None
+
+    def create_card_counter_factory(self) -> Callable[[], CardCounter] | None:
+        if self.betting.strategy_type == "true_count_spread":
+            return HiLoCounter
+        return None
+
+    def create_betting_strategy(
+        self,
+        shoe: Shoe | None = None,
+        card_counter: CardCounter | None = None,
+    ) -> BettingStrategy:
+        shoe = shoe or self.create_shoe()
+        return ConfiguredBettingStrategyFactory(self.betting)(shoe, card_counter)
 
     def create_insurance_strategy_factory(
         self,
@@ -120,8 +206,10 @@ class AppConfig:
         self.create_insurance_strategy()
         return NeverInsuranceStrategy
 
-    def create_betting_strategy_factory(self) -> Callable[[], BettingStrategy]:
-        return FlatBettingStrategyFactory(self.engine_config.betting_amount)
+    def create_betting_strategy_factory(
+        self,
+    ) -> Callable[[Shoe, CardCounter | None], BettingStrategy]:
+        return ConfiguredBettingStrategyFactory(self.betting)
 
     def create_worker_shoe_config(self) -> WorkerShoeConfig:
         return WorkerShoeConfig(
@@ -160,18 +248,17 @@ def parse_app_config(
     rules = _mapping(raw.get("rules", {}), "rules")
     output = _parse_output(raw.get("output", {}))
 
-    betting = _mapping(player.get("betting_strategy", {}), "player.betting_strategy")
-    betting_type = str(betting.get("type", "flat"))
-    if betting_type != "flat":
-        msg = f"unsupported player.betting_strategy.type: {betting_type}"
-        raise ConfigurationError(msg)
+    betting = _parse_betting_settings(
+        player.get("betting_strategy", {}),
+        bankroll,
+    )
 
     dealer_rules = _parse_dealer_rules(rules.get("dealer", {}))
     engine_config = SimulationConfig(
         rounds=simulation.rounds,
         initial_bankroll=_decimal(bankroll.get("initial", "1000"), "bankroll.initial"),
         betting_amount=_decimal(
-            betting.get("amount", "10"),
+            betting.base_amount,
             "player.betting_strategy.amount",
         ),
         blackjack_payout=_decimal(
@@ -200,6 +287,7 @@ def parse_app_config(
         ),
         engine_config=engine_config,
         output=output,
+        betting=betting,
         insurance_strategy_type=str(
             _mapping(
                 player.get("insurance_strategy", {}),
@@ -231,6 +319,89 @@ def _parse_output(raw: object) -> OutputSettings:
         json_file=_optional_str(data.get("json_file")),
         csv_file=_optional_str(data.get("csv_file")),
     )
+
+
+def _parse_betting_settings(raw: object, bankroll: dict[str, Any]) -> BettingSettings:
+    data = _mapping(raw, "player.betting_strategy")
+    strategy_type = _normalize_betting_type(str(data.get("type", "flat")))
+    supported = {
+        "flat",
+        "martingale",
+        "paroli",
+        "fibonacci",
+        "dalembert",
+        "true_count_spread",
+    }
+    if strategy_type not in supported:
+        msg = f"unsupported player.betting_strategy.type: {data.get('type', 'flat')}"
+        raise ConfigurationError(msg)
+
+    amount = data.get("base_amount", data.get("amount", "10"))
+    return BettingSettings(
+        strategy_type=strategy_type,
+        base_amount=_decimal(amount, "player.betting_strategy.amount"),
+        table_limits=_parse_table_limits(data, bankroll),
+        max_wins=_positive_int(
+            data.get("max_wins", 3),
+            "player.betting_strategy.max_wins",
+        ),
+        spread=_parse_spread(data.get("spread")),
+    )
+
+
+def _parse_table_limits(
+    betting: dict[str, Any],
+    bankroll: dict[str, Any],
+) -> TableLimits | None:
+    raw_limits = betting.get("table_limits")
+    if raw_limits is not None:
+        limits = _mapping(raw_limits, "player.betting_strategy.table_limits")
+        return TableLimits(
+            minimum=_decimal(
+                limits.get("minimum", limits.get("min")),
+                "player.betting_strategy.table_limits.minimum",
+            ),
+            maximum=_decimal(
+                limits.get("maximum", limits.get("max")),
+                "player.betting_strategy.table_limits.maximum",
+            ),
+        )
+
+    minimum = bankroll.get("table_minimum")
+    maximum = bankroll.get("table_maximum")
+    if minimum is None and maximum is None:
+        return None
+    if minimum is None or maximum is None:
+        msg = "bankroll table_minimum and table_maximum must be configured together"
+        raise ConfigurationError(msg)
+    return TableLimits(
+        minimum=_decimal(minimum, "bankroll.table_minimum"),
+        maximum=_decimal(maximum, "bankroll.table_maximum"),
+    )
+
+
+def _parse_spread(raw: object) -> dict[Decimal, Decimal] | None:
+    if raw is None:
+        return None
+    data = _mapping(raw, "player.betting_strategy.spread")
+    return {
+        _decimal(threshold, "player.betting_strategy.spread.threshold"): _decimal(
+            multiplier,
+            "player.betting_strategy.spread.multiplier",
+        )
+        for threshold, multiplier in data.items()
+    }
+
+
+def _normalize_betting_type(raw: str) -> str:
+    normalized = raw.strip().lower().replace("-", "_").replace(" ", "_")
+    aliases = {
+        "d_alembert": "dalembert",
+        "d'alembert": "dalembert",
+        "true_count": "true_count_spread",
+        "count_spread": "true_count_spread",
+    }
+    return aliases.get(normalized, normalized)
 
 
 def _parse_dealer_rules(raw: object) -> DealerRules:

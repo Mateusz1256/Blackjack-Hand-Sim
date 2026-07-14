@@ -96,6 +96,39 @@ rules:
     hits_soft_17: false
 ```
 
+Betting strategy options:
+
+```yaml
+player:
+  betting_strategy:
+    type: flat
+    amount: 10
+```
+
+Supported `type` values are `flat`, `martingale`, `paroli`, `fibonacci`,
+`dalembert`, and `true_count_spread`. Progressive strategies use `amount` or
+`base_amount`; `paroli` also accepts `max_wins`. Any strategy can define table
+limits:
+
+```yaml
+table_limits:
+  minimum: 10
+  maximum: 500
+```
+
+For true-count betting:
+
+```yaml
+player:
+  betting_strategy:
+    type: true_count_spread
+    amount: 10
+    spread:
+      0: 1
+      2: 2
+      4: 4
+```
+
 ## CLI
 
 ```powershell

@@ -38,6 +38,7 @@ def test_million_round_configuration_worker_smoke_is_deterministic() -> None:
         player_strategy_factory=app_config.create_playing_strategy_factory(),
         insurance_strategy_factory=app_config.create_insurance_strategy_factory(),
         betting_strategy_factory=app_config.create_betting_strategy_factory(),
+        card_counter_factory=app_config.create_card_counter_factory(),
         use_processes=False,
     )
     second = run_worker_simulations(
@@ -48,6 +49,7 @@ def test_million_round_configuration_worker_smoke_is_deterministic() -> None:
         player_strategy_factory=app_config.create_playing_strategy_factory(),
         insurance_strategy_factory=app_config.create_insurance_strategy_factory(),
         betting_strategy_factory=app_config.create_betting_strategy_factory(),
+        card_counter_factory=app_config.create_card_counter_factory(),
         use_processes=False,
     )
 

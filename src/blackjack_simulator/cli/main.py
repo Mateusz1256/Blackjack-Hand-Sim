@@ -62,17 +62,21 @@ def _run(args: Namespace) -> int:
             player_strategy_factory=app_config.create_playing_strategy_factory(),
             insurance_strategy_factory=app_config.create_insurance_strategy_factory(),
             betting_strategy_factory=app_config.create_betting_strategy_factory(),
+            card_counter_factory=app_config.create_card_counter_factory(),
         )
     else:
         collector = StatisticsCollector(
             initial_bankroll=app_config.engine_config.initial_bankroll,
         )
+        shoe = app_config.create_shoe()
+        card_counter = app_config.create_card_counter()
         result = run_simulation(
-            shoe=app_config.create_shoe(),
+            shoe=shoe,
             config=app_config.engine_config,
             player_strategy=app_config.create_playing_strategy(),
             insurance_strategy=app_config.create_insurance_strategy(),
-            betting_strategy=app_config.create_betting_strategy(),
+            betting_strategy=app_config.create_betting_strategy(shoe, card_counter),
+            card_counter=card_counter,
             statistics_collector=collector,
             store_rounds=False,
         )
@@ -97,12 +101,15 @@ def _run(args: Namespace) -> int:
 
 def _trace(args: Namespace) -> int:
     app_config = load_app_config(args.config, overrides=_overrides(args))
+    shoe = app_config.create_shoe()
+    card_counter = app_config.create_card_counter()
     result = run_simulation(
-        shoe=app_config.create_shoe(),
+        shoe=shoe,
         config=app_config.engine_config,
         player_strategy=app_config.create_playing_strategy(),
         insurance_strategy=app_config.create_insurance_strategy(),
-        betting_strategy=app_config.create_betting_strategy(),
+        betting_strategy=app_config.create_betting_strategy(shoe, card_counter),
+        card_counter=card_counter,
     )
     for index, round_result in enumerate(result.rounds, start=1):
         print(

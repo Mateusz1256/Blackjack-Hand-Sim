@@ -7,6 +7,11 @@ Versioning.
 
 ## [Unreleased]
 
+### Added
+
+- YAML betting strategy configuration for flat, Martingale, Paroli, Fibonacci,
+  D'Alembert, and true-count spread betting, including table limits.
+
 ## [1.0.0] - 2026-07-14
 
 ### Added
