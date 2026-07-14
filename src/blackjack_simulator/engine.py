@@ -5,6 +5,7 @@ from decimal import Decimal
 
 from blackjack_simulator.betting import FlatBettingStrategy
 from blackjack_simulator.betting.base import BettingStrategy, outcome_from_net_result
+from blackjack_simulator.counting.base import CardCounter
 from blackjack_simulator.round import PlayerStrategy, RoundResult, RoundShoe, play_round
 from blackjack_simulator.rules import (
     DealerRules,
@@ -59,6 +60,7 @@ def run_simulation(
     player_strategy: PlayerStrategy,
     insurance_strategy: InsuranceStrategy | None = None,
     betting_strategy: BettingStrategy | None = None,
+    card_counter: CardCounter | None = None,
 ) -> SimulationResult:
     insurance_strategy = insurance_strategy or NeverInsuranceStrategy()
     betting = betting_strategy or FlatBettingStrategy(config.betting_amount)
@@ -79,6 +81,7 @@ def run_simulation(
             insurance_rules=config.insurance_rules,
             insurance_strategy=insurance_strategy,
             hole_card_rules=config.hole_card_rules,
+            card_counter=card_counter,
         )
         bankroll += result.net_result
         betting.update_after_round(outcome_from_net_result(result.net_result))

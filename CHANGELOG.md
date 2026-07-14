@@ -29,3 +29,5 @@ Versioning.
   settlement variants for dealer blackjack after player actions.
 - Progressive betting systems for Martingale, Paroli, Fibonacci, and
   D'Alembert, plus table limits and insufficient-bankroll handling.
+- Hi-Lo card counting with running/true count, reveal-timed round integration,
+  count-based insurance, and true-count betting spread.

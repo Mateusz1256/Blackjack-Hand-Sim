@@ -6,6 +6,7 @@ from typing import Protocol
 
 from blackjack_simulator.actions import Action
 from blackjack_simulator.cards import Card
+from blackjack_simulator.counting.base import CardCounter
 from blackjack_simulator.hand import Hand
 from blackjack_simulator.rules import (
     CardSource,
@@ -20,7 +21,6 @@ from blackjack_simulator.rules import (
     dealer_should_peek,
     is_insurance_offered,
     legal_player_actions,
-    play_dealer_hand,
 )
 from blackjack_simulator.settlement import (
     InsuranceSettlement,
@@ -140,6 +140,7 @@ def play_round(
     insurance_rules: InsuranceRules | None = None,
     insurance_strategy: InsuranceStrategy | None = None,
     hole_card_rules: HoleCardRules | None = None,
+    card_counter: CardCounter | None = None,
 ) -> RoundResult:
     double_rules = double_rules or DoubleRules()
     surrender_rules = surrender_rules or SurrenderRules()
@@ -150,9 +151,9 @@ def play_round(
     player = Hand(original_bet=bet, current_bet=bet)
     dealer = Hand()
 
-    player.add_card(shoe.draw())
-    dealer.add_card(shoe.draw())
-    player.add_card(shoe.draw())
+    _draw_visible_card(shoe, player, card_counter)
+    _draw_visible_card(shoe, dealer, card_counter)
+    _draw_visible_card(shoe, player, card_counter)
     if hole_card_rules.mode is HoleCardMode.AMERICAN:
         dealer.add_card(shoe.draw())
 
@@ -161,10 +162,12 @@ def play_round(
         dealer=dealer,
         rules=insurance_rules,
         strategy=insurance_strategy,
+        remaining_cards=_remaining_cards(shoe),
     )
 
     if player.is_blackjack():
-        _complete_enhc_dealer_initial_hand(dealer, shoe, hole_card_rules)
+        _reveal_dealer_hole_card(dealer, card_counter)
+        _complete_enhc_dealer_initial_hand(dealer, shoe, hole_card_rules, card_counter)
         return _complete_round(
             [player],
             dealer,
@@ -173,6 +176,7 @@ def play_round(
             split_rules,
             insurance_settlement,
             hole_card_rules,
+            card_counter,
         )
 
     if surrender_rules.surrender_type is SurrenderType.EARLY:
@@ -198,6 +202,7 @@ def play_round(
                 split_rules,
                 insurance_settlement,
                 hole_card_rules,
+                card_counter,
             )
 
     if (
@@ -205,6 +210,7 @@ def play_round(
         and dealer_should_peek(dealer.cards[0], dealer_rules)
         and dealer.is_blackjack()
     ):
+        _reveal_dealer_hole_card(dealer, card_counter)
         return _complete_round(
             [player],
             dealer,
@@ -213,6 +219,7 @@ def play_round(
             split_rules,
             insurance_settlement,
             hole_card_rules,
+            card_counter,
         )
 
     player_hands = [player]
@@ -234,6 +241,7 @@ def play_round(
             double_rules,
             surrender_rules,
             split_rules,
+            card_counter,
         )
         if hand_was_split:
             continue
@@ -243,7 +251,7 @@ def play_round(
         hand for hand in player_hands if not hand.is_bust and not hand.surrendered
     ]
     if live_hands:
-        _complete_enhc_dealer_initial_hand(dealer, shoe, hole_card_rules)
+        _complete_enhc_dealer_initial_hand(dealer, shoe, hole_card_rules, card_counter)
     if (
         hole_card_rules.mode is HoleCardMode.EUROPEAN_NO_HOLE_CARD
         and dealer.is_blackjack()
@@ -256,10 +264,12 @@ def play_round(
             split_rules,
             insurance_settlement,
             hole_card_rules,
+            card_counter,
             enhc_dealer_blackjack=True,
         )
     if live_hands:
-        play_dealer_hand(dealer, shoe, dealer_rules)
+        _reveal_dealer_hole_card(dealer, card_counter)
+        _play_visible_dealer_hand(dealer, shoe, dealer_rules, card_counter)
 
     return _complete_round(
         player_hands,
@@ -269,6 +279,7 @@ def play_round(
         split_rules,
         insurance_settlement,
         hole_card_rules,
+        card_counter,
     )
 
 
@@ -278,13 +289,18 @@ def _resolve_insurance(
     dealer: Hand,
     rules: InsuranceRules,
     strategy: InsuranceStrategy,
+    remaining_cards: int | None,
 ) -> InsuranceSettlement | None:
     if len(dealer.cards) < 2:
         return None
     if not is_insurance_offered(dealer.cards[0], rules):
         return None
 
-    insurance_bet = strategy.insurance_bet(player=player, rules=rules)
+    insurance_bet = strategy.insurance_bet(
+        player=player,
+        rules=rules,
+        remaining_cards=remaining_cards,
+    )
     if insurance_bet <= 0:
         return None
 
@@ -299,16 +315,45 @@ def _resolve_insurance(
     )
 
 
+def _remaining_cards(shoe: RoundShoe) -> int | None:
+    return getattr(shoe, "remaining_cards", None)
+
+
+def _draw_visible_card(
+    shoe: RoundShoe,
+    hand: Hand,
+    card_counter: CardCounter | None,
+) -> Card:
+    card = shoe.draw()
+    hand.add_card(card)
+    _observe_card(card_counter, card)
+    return card
+
+
+def _observe_card(card_counter: CardCounter | None, card: Card) -> None:
+    if card_counter is not None:
+        card_counter.observe(card)
+
+
+def _reveal_dealer_hole_card(
+    dealer: Hand,
+    card_counter: CardCounter | None,
+) -> None:
+    if len(dealer.cards) >= 2:
+        _observe_card(card_counter, dealer.cards[1])
+
+
 def _complete_enhc_dealer_initial_hand(
     dealer: Hand,
     shoe: RoundShoe,
     hole_card_rules: HoleCardRules,
+    card_counter: CardCounter | None,
 ) -> None:
     if (
         hole_card_rules.mode is HoleCardMode.EUROPEAN_NO_HOLE_CARD
         and len(dealer.cards) == 1
     ):
-        dealer.add_card(shoe.draw())
+        _draw_visible_card(shoe, dealer, card_counter)
 
 
 def _play_player_hand(
@@ -321,6 +366,7 @@ def _play_player_hand(
     double_rules: DoubleRules,
     surrender_rules: SurrenderRules,
     split_rules: SplitRules,
+    card_counter: CardCounter | None,
 ) -> bool:
     while not hand.is_bust and not hand.surrendered:
         legal_actions = legal_player_actions(
@@ -338,12 +384,12 @@ def _play_player_hand(
             hand.stood = True
             break
         if action is Action.HIT:
-            hand.add_card(shoe.draw())
+            _draw_visible_card(shoe, hand, card_counter)
             continue
         if action is Action.DOUBLE:
             hand.current_bet += hand.original_bet
             hand.doubled = True
-            hand.add_card(shoe.draw())
+            _draw_visible_card(shoe, hand, card_counter)
             break
         if action is Action.SURRENDER:
             hand.surrendered = True
@@ -353,6 +399,7 @@ def _play_player_hand(
                 hand,
                 shoe,
                 split_rules,
+                card_counter,
             )
             return True
         msg = f"unsupported action for round flow: {action}"
@@ -366,6 +413,7 @@ def _split_hand(
     hand: Hand,
     shoe: RoundShoe,
     split_rules: SplitRules,
+    card_counter: CardCounter | None,
 ) -> list[Hand]:
     first_card, second_card = hand.cards
     split_aces = first_card.rank is second_card.rank and first_card.rank.value == "A"
@@ -386,8 +434,8 @@ def _split_hand(
         split_depth=depth,
         originated_from_split_aces=hand.originated_from_split_aces or split_aces,
     )
-    first.add_card(shoe.draw())
-    second.add_card(shoe.draw())
+    _draw_visible_card(shoe, first, card_counter)
+    _draw_visible_card(shoe, second, card_counter)
 
     if split_aces and not split_rules.hit_split_aces:
         first.completed = True
@@ -424,6 +472,20 @@ def _fallback_action(action: Action) -> Action:
     return action
 
 
+def _play_visible_dealer_hand(
+    dealer: Hand,
+    shoe: RoundShoe,
+    dealer_rules: DealerRules,
+    card_counter: CardCounter | None,
+) -> Hand:
+    while dealer.value < 17 or (
+        dealer.value == 17 and dealer.is_soft and dealer_rules.hits_soft_17
+    ):
+        _draw_visible_card(shoe, dealer, card_counter)
+
+    return dealer
+
+
 def _complete_round(
     player_hands: list[Hand],
     dealer: Hand,
@@ -432,6 +494,7 @@ def _complete_round(
     split_rules: SplitRules,
     insurance_settlement: InsuranceSettlement | None,
     hole_card_rules: HoleCardRules,
+    card_counter: CardCounter | None,
     *,
     enhc_dealer_blackjack: bool = False,
 ) -> RoundResult:
@@ -454,6 +517,8 @@ def _complete_round(
 
     if shoe.needs_shuffle:
         shoe.reset()
+        if card_counter is not None:
+            card_counter.reset()
 
     return result
 

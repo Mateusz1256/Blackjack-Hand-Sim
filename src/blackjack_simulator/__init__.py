@@ -8,8 +8,10 @@ from blackjack_simulator.betting import (
     MartingaleBettingStrategy,
     ParoliBettingStrategy,
     TableLimits,
+    TrueCountSpreadBettingStrategy,
 )
 from blackjack_simulator.cards import Card, Rank
+from blackjack_simulator.counting import HiLoCounter
 from blackjack_simulator.engine import (
     SimulationConfig,
     SimulationResult,
@@ -33,6 +35,7 @@ from blackjack_simulator.strategies import (
     AlwaysInsuranceStrategy,
     BasicStrategy,
     BasicStrategyProfile,
+    CountBasedInsuranceStrategy,
     EvenMoneyInsuranceStrategy,
     NeverInsuranceStrategy,
     basic_strategy_for_rules,
@@ -44,6 +47,7 @@ __all__ = [
     "BasicStrategy",
     "BasicStrategyProfile",
     "Card",
+    "CountBasedInsuranceStrategy",
     "DAlembertBettingStrategy",
     "DealerRules",
     "DoubleRules",
@@ -52,6 +56,7 @@ __all__ = [
     "FibonacciBettingStrategy",
     "FlatBettingStrategy",
     "Hand",
+    "HiLoCounter",
     "HoleCardMode",
     "HoleCardRules",
     "InsufficientBankrollError",
@@ -67,6 +72,7 @@ __all__ = [
     "SurrenderRules",
     "SurrenderType",
     "TableLimits",
+    "TrueCountSpreadBettingStrategy",
     "__version__",
     "basic_strategy_for_rules",
     "run_simulation",

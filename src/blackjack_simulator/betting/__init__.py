@@ -1,6 +1,7 @@
 """Betting strategies."""
 
 from blackjack_simulator.betting.base import BettingOutcome, TableLimits
+from blackjack_simulator.betting.count_spread import TrueCountSpreadBettingStrategy
 from blackjack_simulator.betting.dalembert import DAlembertBettingStrategy
 from blackjack_simulator.betting.fibonacci import FibonacciBettingStrategy
 from blackjack_simulator.betting.flat import FlatBettingStrategy
@@ -15,4 +16,5 @@ __all__ = [
     "MartingaleBettingStrategy",
     "ParoliBettingStrategy",
     "TableLimits",
+    "TrueCountSpreadBettingStrategy",
 ]

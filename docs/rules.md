@@ -122,3 +122,20 @@ surrender, peek, ENHC, OBO, insurance, and even money.
 - Effect: requested bets are clamped to table minimum and maximum. If bankroll
   is below table minimum or below an unclamped requested bet, the strategy raises
   `InsufficientBankrollError`.
+
+## Hi-Lo Counting
+
+- Field: optional `card_counter` passed to `play_round` or `run_simulation`
+- Values: `HiLoCounter`
+- Default: no counting
+- Effect: revealed cards update running count. True count is calculated from the
+  current running count and remaining cards. In American hole-card games, the
+  dealer hole card updates the count only when revealed by peek, settlement, or
+  dealer play. The count resets when the shoe resets after shuffle.
+
+## Count-Based Insurance and Betting Spread
+
+- Fields: `CountBasedInsuranceStrategy`, `TrueCountSpreadBettingStrategy`
+- Effect: insurance can be taken only when true count reaches a configured
+  threshold. Betting spread chooses the initial round wager from true-count
+  thresholds while still respecting table limits and bankroll checks.
