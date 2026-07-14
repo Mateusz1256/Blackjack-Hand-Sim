@@ -5,7 +5,7 @@ from enum import StrEnum
 from typing import Protocol
 
 from blackjack_simulator.actions import Action
-from blackjack_simulator.cards import Card
+from blackjack_simulator.cards import Card, Rank
 from blackjack_simulator.hand import Hand
 
 
@@ -42,6 +42,33 @@ class SurrenderRules:
     surrender_type: SurrenderType = SurrenderType.NONE
 
 
+@dataclass(frozen=True, slots=True)
+class SplitRules:
+    allowed: bool = False
+    max_hands: int = 4
+    require_same_rank: bool = True
+    resplit_aces: bool = False
+    hit_split_aces: bool = False
+    double_after_split_aces: bool = False
+    blackjack_after_split_counts_as_blackjack: bool = False
+
+    def legal_actions_for(
+        self,
+        hand: Hand,
+        double_rules: DoubleRules,
+        *,
+        current_hand_count: int,
+    ) -> frozenset[Action]:
+        return legal_player_actions(
+            hand,
+            double_rules=double_rules,
+            surrender_rules=SurrenderRules(),
+            split_rules=self,
+            dealer_blackjack_checked=True,
+            current_hand_count=current_hand_count,
+        )
+
+
 def can_double(hand: Hand, rules: DoubleRules) -> bool:
     if not rules.allowed:
         return False
@@ -50,6 +77,16 @@ def can_double(hand: Hand, rules: DoubleRules) -> bool:
     if hand.is_split_hand and not rules.after_split:
         return False
     return rules.allowed_totals is None or hand.value in rules.allowed_totals
+
+
+def can_double_with_split_rules(
+    hand: Hand,
+    double_rules: DoubleRules,
+    split_rules: SplitRules,
+) -> bool:
+    if not can_double(hand, double_rules):
+        return False
+    return not hand.originated_from_split_aces or split_rules.double_after_split_aces
 
 
 def can_surrender(
@@ -77,11 +114,16 @@ def legal_player_actions(
     *,
     double_rules: DoubleRules,
     surrender_rules: SurrenderRules,
+    split_rules: SplitRules | None = None,
     dealer_blackjack_checked: bool,
+    current_hand_count: int = 1,
 ) -> frozenset[Action]:
     actions = {Action.HIT, Action.STAND}
-    if can_double(hand, double_rules):
+    split_rules = split_rules or SplitRules()
+    if can_double_with_split_rules(hand, double_rules, split_rules):
         actions.add(Action.DOUBLE)
+    if can_split(hand, split_rules, current_hand_count=current_hand_count):
+        actions.add(Action.SPLIT)
     if can_surrender(
         hand,
         surrender_rules,
@@ -90,6 +132,27 @@ def legal_player_actions(
         actions.add(Action.SURRENDER)
 
     return frozenset(actions)
+
+
+def can_split(
+    hand: Hand,
+    rules: SplitRules,
+    *,
+    current_hand_count: int,
+) -> bool:
+    if not rules.allowed:
+        return False
+    if current_hand_count >= rules.max_hands:
+        return False
+    if len(hand.cards) != 2:
+        return False
+    if not hand.is_pair(require_same_rank=rules.require_same_rank):
+        return False
+    return not (_is_aces_pair(hand) and hand.is_split_hand and not rules.resplit_aces)
+
+
+def _is_aces_pair(hand: Hand) -> bool:
+    return len(hand.cards) == 2 and all(card.rank is Rank.ACE for card in hand.cards)
 
 
 def dealer_should_hit(hand: Hand, rules: DealerRules) -> bool:

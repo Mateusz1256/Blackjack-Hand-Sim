@@ -39,7 +39,7 @@ python -m pip install -e ".[dev]"
 
 ## Quick Start
 
-At this stage the package exposes card, hand, shoe, dealer-rule, double,
+At this stage the package exposes card, hand, shoe, dealer-rule, double, split,
 surrender, basic strategy, basic round, settlement, flat betting, and simple
 simulation primitives.
 

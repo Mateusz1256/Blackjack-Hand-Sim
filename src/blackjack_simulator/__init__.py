@@ -11,6 +11,7 @@ from blackjack_simulator.hand import Hand
 from blackjack_simulator.rules import (
     DealerRules,
     DoubleRules,
+    SplitRules,
     SurrenderRules,
     SurrenderType,
 )
@@ -33,6 +34,7 @@ __all__ = [
     "Shoe",
     "SimulationConfig",
     "SimulationResult",
+    "SplitRules",
     "SurrenderRules",
     "SurrenderType",
     "__version__",

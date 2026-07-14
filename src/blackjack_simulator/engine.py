@@ -5,7 +5,12 @@ from decimal import Decimal
 
 from blackjack_simulator.betting import FlatBettingStrategy
 from blackjack_simulator.round import PlayerStrategy, RoundResult, RoundShoe, play_round
-from blackjack_simulator.rules import DealerRules
+from blackjack_simulator.rules import (
+    DealerRules,
+    DoubleRules,
+    SplitRules,
+    SurrenderRules,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -15,6 +20,9 @@ class SimulationConfig:
     betting_amount: Decimal
     blackjack_payout: Decimal = Decimal("1.5")
     dealer_rules: DealerRules = field(default_factory=DealerRules)
+    double_rules: DoubleRules = field(default_factory=DoubleRules)
+    surrender_rules: SurrenderRules = field(default_factory=SurrenderRules)
+    split_rules: SplitRules = field(default_factory=SplitRules)
 
     def __post_init__(self) -> None:
         if self.rounds < 0:
@@ -53,8 +61,11 @@ def run_simulation(
             player_strategy=player_strategy,
             bet=bet,
             blackjack_payout=config.blackjack_payout,
+            double_rules=config.double_rules,
+            surrender_rules=config.surrender_rules,
+            split_rules=config.split_rules,
         )
-        bankroll += result.settlement.net_result
+        bankroll += result.net_result
         round_results.append(result)
 
     return SimulationResult(

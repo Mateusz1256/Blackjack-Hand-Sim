@@ -57,3 +57,15 @@ surrender, peek, ENHC, OBO, insurance, and even money.
 - Effect: surrender settles the hand at net `-current_bet / 2`. Early surrender
   is offered before dealer blackjack resolution. Late surrender is available
   only after confirming that dealer blackjack is absent.
+
+## Split
+
+- Field: `SplitRules`
+- Values: `allowed`, `max_hands`, `require_same_rank`, `resplit_aces`,
+  `hit_split_aces`, `double_after_split_aces`,
+  `blackjack_after_split_counts_as_blackjack`
+- Default: disabled, maximum four hands when enabled
+- Effect: split replaces one two-card pair with two split hands, each with a
+  matching original bet and one newly dealt card. Split aces receive only one
+  card unless `hit_split_aces` is enabled. A post-split 21 is not a blackjack
+  unless explicitly configured.

@@ -11,6 +11,7 @@ from blackjack_simulator.rules import (
     CardSource,
     DealerRules,
     DoubleRules,
+    SplitRules,
     SurrenderRules,
     SurrenderType,
     legal_player_actions,
@@ -86,9 +87,24 @@ class ThresholdStrategy:
 
 @dataclass(frozen=True, slots=True)
 class RoundResult:
-    player_hand: Hand
+    player_hands: list[Hand]
     dealer_hand: Hand
-    settlement: SettlementResult
+    settlements: list[SettlementResult]
+
+    @property
+    def player_hand(self) -> Hand:
+        return self.player_hands[0]
+
+    @property
+    def settlement(self) -> SettlementResult:
+        return self.settlements[0]
+
+    @property
+    def net_result(self) -> Decimal:
+        return sum(
+            (settlement.net_result for settlement in self.settlements),
+            start=Decimal("0"),
+        )
 
 
 def play_round(
@@ -100,9 +116,11 @@ def play_round(
     blackjack_payout: Decimal = Decimal("1.5"),
     double_rules: DoubleRules | None = None,
     surrender_rules: SurrenderRules | None = None,
+    split_rules: SplitRules | None = None,
 ) -> RoundResult:
     double_rules = double_rules or DoubleRules()
     surrender_rules = surrender_rules or SurrenderRules()
+    split_rules = split_rules or SplitRules()
     player = Hand(original_bet=bet, current_bet=bet)
     dealer = Hand()
 
@@ -112,7 +130,7 @@ def play_round(
     dealer.add_card(shoe.draw())
 
     if player.is_blackjack():
-        return _complete_round(player, dealer, shoe, blackjack_payout)
+        return _complete_round([player], dealer, shoe, blackjack_payout, split_rules)
 
     if surrender_rules.surrender_type is SurrenderType.EARLY:
         early_legal_actions = legal_player_actions(
@@ -129,42 +147,138 @@ def play_round(
         )
         if action is Action.SURRENDER:
             player.surrendered = True
-            return _complete_round(player, dealer, shoe, blackjack_payout)
+            return _complete_round(
+                [player],
+                dealer,
+                shoe,
+                blackjack_payout,
+                split_rules,
+            )
 
     if dealer.is_blackjack():
-        return _complete_round(player, dealer, shoe, blackjack_payout)
+        return _complete_round([player], dealer, shoe, blackjack_payout, split_rules)
 
-    while not player.is_bust and not player.surrendered:
+    player_hands = [player]
+    hand_index = 0
+    while hand_index < len(player_hands):
+        active_hand = player_hands[hand_index]
+        if _split_aces_hand_is_complete(active_hand, split_rules):
+            active_hand.completed = True
+            hand_index += 1
+            continue
+
+        hand_was_split = _play_player_hand(
+            active_hand,
+            hand_index,
+            player_hands,
+            shoe,
+            dealer.cards[0],
+            player_strategy,
+            double_rules,
+            surrender_rules,
+            split_rules,
+        )
+        if hand_was_split:
+            continue
+        hand_index += 1
+
+    if any(not hand.is_bust and not hand.surrendered for hand in player_hands):
+        play_dealer_hand(dealer, shoe, dealer_rules)
+
+    return _complete_round(player_hands, dealer, shoe, blackjack_payout, split_rules)
+
+
+def _play_player_hand(
+    hand: Hand,
+    hand_index: int,
+    player_hands: list[Hand],
+    shoe: RoundShoe,
+    dealer_upcard: Card,
+    player_strategy: PlayerStrategy,
+    double_rules: DoubleRules,
+    surrender_rules: SurrenderRules,
+    split_rules: SplitRules,
+) -> bool:
+    while not hand.is_bust and not hand.surrendered:
         legal_actions = legal_player_actions(
-            player,
+            hand,
             double_rules=double_rules,
             surrender_rules=surrender_rules,
+            split_rules=split_rules,
             dealer_blackjack_checked=True,
+            current_hand_count=len(player_hands),
         )
-        action = _choose_action(player_strategy, player, dealer.cards[0], legal_actions)
+        action = _choose_action(player_strategy, hand, dealer_upcard, legal_actions)
         if action not in legal_actions:
             action = _fallback_action(action)
         if action is Action.STAND:
-            player.stood = True
+            hand.stood = True
             break
         if action is Action.HIT:
-            player.add_card(shoe.draw())
+            hand.add_card(shoe.draw())
             continue
         if action is Action.DOUBLE:
-            player.current_bet += player.original_bet
-            player.doubled = True
-            player.add_card(shoe.draw())
+            hand.current_bet += hand.original_bet
+            hand.doubled = True
+            hand.add_card(shoe.draw())
             break
         if action is Action.SURRENDER:
-            player.surrendered = True
+            hand.surrendered = True
             break
+        if action is Action.SPLIT:
+            player_hands[hand_index : hand_index + 1] = _split_hand(
+                hand,
+                shoe,
+                split_rules,
+            )
+            return True
         msg = f"unsupported action for round flow: {action}"
         raise ValueError(msg)
 
-    if not player.is_bust and not player.surrendered:
-        play_dealer_hand(dealer, shoe, dealer_rules)
+    hand.completed = True
+    return False
 
-    return _complete_round(player, dealer, shoe, blackjack_payout)
+
+def _split_hand(
+    hand: Hand,
+    shoe: RoundShoe,
+    split_rules: SplitRules,
+) -> list[Hand]:
+    first_card, second_card = hand.cards
+    split_aces = first_card.rank is second_card.rank and first_card.rank.value == "A"
+    depth = hand.split_depth + 1
+    first = Hand(
+        cards=[first_card],
+        original_bet=hand.original_bet,
+        current_bet=hand.original_bet,
+        is_split_hand=True,
+        split_depth=depth,
+        originated_from_split_aces=hand.originated_from_split_aces or split_aces,
+    )
+    second = Hand(
+        cards=[second_card],
+        original_bet=hand.original_bet,
+        current_bet=hand.original_bet,
+        is_split_hand=True,
+        split_depth=depth,
+        originated_from_split_aces=hand.originated_from_split_aces or split_aces,
+    )
+    first.add_card(shoe.draw())
+    second.add_card(shoe.draw())
+
+    if split_aces and not split_rules.hit_split_aces:
+        first.completed = True
+        second.completed = True
+
+    return [first, second]
+
+
+def _split_aces_hand_is_complete(hand: Hand, split_rules: SplitRules) -> bool:
+    return (
+        hand.originated_from_split_aces
+        and not split_rules.hit_split_aces
+        and len(hand.cards) >= 2
+    )
 
 
 def _choose_action(
@@ -188,21 +302,29 @@ def _fallback_action(action: Action) -> Action:
 
 
 def _complete_round(
-    player: Hand,
+    player_hands: list[Hand],
     dealer: Hand,
     shoe: RoundShoe,
     blackjack_payout: Decimal,
+    split_rules: SplitRules,
 ) -> RoundResult:
-    player.completed = True
+    for hand in player_hands:
+        hand.completed = True
     dealer.completed = True
     result = RoundResult(
-        player_hand=player,
+        player_hands=player_hands,
         dealer_hand=dealer,
-        settlement=settle_hand(
-            player=player,
-            dealer=dealer,
-            blackjack_payout=blackjack_payout,
-        ),
+        settlements=[
+            settle_hand(
+                player=hand,
+                dealer=dealer,
+                blackjack_payout=blackjack_payout,
+                blackjack_after_split_counts_as_blackjack=(
+                    split_rules.blackjack_after_split_counts_as_blackjack
+                ),
+            )
+            for hand in player_hands
+        ],
     )
 
     if shoe.needs_shuffle:

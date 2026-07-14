@@ -21,3 +21,5 @@ Versioning.
   pair tables plus legal-action fallback.
 - Double and surrender rules with action legality, double bet settlement, early
   surrender, late surrender, and basic-strategy fallback integration.
+- Split rules with resplit limits, split ace restrictions, double-after-split
+  checks, multi-hand round settlement, and post-split blackjack handling.

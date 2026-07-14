@@ -29,9 +29,14 @@ def settle_hand(
     player: Hand,
     dealer: Hand,
     blackjack_payout: Decimal,
+    blackjack_after_split_counts_as_blackjack: bool = False,
 ) -> SettlementResult:
     bet = player.current_bet
-    player_blackjack = player.is_blackjack()
+    player_blackjack = player.is_blackjack(
+        blackjack_after_split_counts_as_blackjack=(
+            blackjack_after_split_counts_as_blackjack
+        ),
+    )
     dealer_blackjack = dealer.is_blackjack()
 
     if player.surrendered:
