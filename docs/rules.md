@@ -22,3 +22,13 @@ implemented.
 
 Future sections will document blackjack payout, DAS, split aces, resplit aces,
 surrender, peek, ENHC, OBO, insurance, and even money.
+
+## Blackjack Payout
+
+- Field: `SimulationConfig.blackjack_payout` or `settle_hand(...,
+  blackjack_payout=...)`
+- Values: positive `Decimal`
+- Default: `1.5`
+- Effect: a natural player blackjack against a non-blackjack dealer returns net
+  profit equal to `current_bet * blackjack_payout`. The returned stake is not
+  included in the settlement result.

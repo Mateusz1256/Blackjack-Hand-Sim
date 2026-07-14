@@ -15,3 +15,5 @@ Versioning.
   blackjack detection, bust detection, and pair detection.
 - Deterministic shoe generation with deck count, penetration tracking, injected
   RNG shuffling, and S17/H17 dealer drawing behavior.
+- Basic round flow with hit, stand, blackjack, bust, push, flat betting,
+  bankroll updates, and net-result settlement.

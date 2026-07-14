@@ -39,20 +39,42 @@ python -m pip install -e ".[dev]"
 
 ## Quick Start
 
-At this stage the package exposes card, hand, shoe, and dealer-rule primitives.
+At this stage the package exposes card, hand, shoe, dealer-rule, basic round,
+settlement, flat betting, and simple simulation primitives.
 
 ```python
 import random
+from decimal import Decimal
 
-from blackjack_simulator import Card, DealerRules, Hand, Rank, Shoe
+from blackjack_simulator import (
+    Action,
+    Card,
+    DealerRules,
+    Hand,
+    Rank,
+    Shoe,
+    SimulationConfig,
+    run_simulation,
+)
+from blackjack_simulator.round import FixedActionStrategy
 
 hand = Hand(cards=[Card(Rank.ACE), Card(Rank.KING)])
 print(hand.value)
 print(hand.is_blackjack())
 
 shoe = Shoe(decks=6, penetration=0.75, rng=random.Random(123))
-print(shoe.draw())
-print(DealerRules(hits_soft_17=False))
+config = SimulationConfig(
+    rounds=10,
+    initial_bankroll=Decimal("1000"),
+    betting_amount=Decimal("10"),
+    dealer_rules=DealerRules(hits_soft_17=False),
+)
+result = run_simulation(
+    shoe=shoe,
+    config=config,
+    player_strategy=FixedActionStrategy(Action.STAND),
+)
+print(result.final_bankroll)
 ```
 
 ## Configuration Example
@@ -74,8 +96,7 @@ rules:
 
 ## CLI
 
-The CLI is planned for a later task. No command-line entry point is shipped in
-the current foundation step.
+The CLI is planned for a later task. No command-line entry point is shipped yet.
 
 ## Reports
 

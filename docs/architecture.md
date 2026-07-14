@@ -2,7 +2,8 @@
 
 This document describes the planned architecture. The current codebase contains
 the project foundation, card/hand primitives, deterministic shoe behavior, and
-dealer S17/H17 drawing rules.
+dealer S17/H17 drawing rules. It also contains a basic no-split/no-double round
+flow, net settlement, flat betting, and multi-round bankroll orchestration.
 
 ## Module Diagram
 
@@ -44,6 +45,9 @@ Planned layers:
 7. Statistics are updated once per round with hand-level detail.
 8. Shoe penetration is checked before the next round.
 
+The current implementation covers steps 1, 2, 4, 5, 6, and 8 for a single player
+hand without split, double, surrender, insurance, or ENHC.
+
 ## Basic Strategy Selection
 
 Basic strategy will be selected from a profile keyed by relevant table rules:
@@ -58,6 +62,10 @@ available under the active rules.
 Settlement records net profit or loss separately from returned stake. Splits,
 doubles, surrender, insurance, and ENHC variants must be represented explicitly
 so statistics can distinguish initial wager from total action.
+
+The current basic settlement returns only net results: blackjack pays the
+configured profit multiplier, normal wins pay even money, losses are negative
+current bet, and pushes are zero.
 
 ## Statistics
 
