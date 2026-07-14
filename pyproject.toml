@@ -22,13 +22,19 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
   "Topic :: Scientific/Engineering :: Mathematics",
 ]
-dependencies = []
+dependencies = [
+  "PyYAML>=6.0",
+]
+
+[project.scripts]
+blackjack-simulator = "blackjack_simulator.cli.main:main"
 
 [project.optional-dependencies]
 dev = [
   "mypy>=1.10",
   "pytest>=8.2",
   "ruff>=0.5",
+  "types-PyYAML>=6.0",
 ]
 
 [project.urls]

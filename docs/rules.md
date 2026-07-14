@@ -149,3 +149,11 @@ surrender, peek, ENHC, OBO, insurance, and even money.
   collector. Metrics include Welford mean/variance, house edge against initial
   bets and total action, RTP, max drawdown, and win/loss/push streaks. Reports
   can be rendered as JSON, CSV, or plain console text.
+
+## YAML Configuration and CLI
+
+- Fields: `simulation`, `bankroll`, `rules`, `player`, `output`
+- Commands: `validate`, `run`, `trace`
+- Overrides: `--rounds`, `--seed`
+- Effect: YAML is converted into typed domain configuration before the engine is
+  called. The CLI does not implement game behavior directly.

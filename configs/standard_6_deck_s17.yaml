@@ -1,0 +1,50 @@
+simulation:
+  rounds: 1000
+  seed: 123456
+
+bankroll:
+  initial: 10000
+
+rules:
+  decks: 6
+  penetration: 0.75
+  shuffle_after_each_round: false
+  blackjack_payout: 1.5
+  dealer:
+    hits_soft_17: false
+    peeks_for_blackjack: true
+  double:
+    allowed: true
+    after_split: true
+    allowed_totals: [9, 10, 11]
+  surrender:
+    type: late
+  split:
+    allowed: true
+    max_hands: 4
+    require_same_rank: true
+    resplit_aces: false
+    hit_split_aces: false
+    double_after_split_aces: false
+    blackjack_after_split_counts_as_blackjack: false
+  insurance:
+    offered: true
+    payout: 2
+    max_bet_fraction: 0.5
+  hole_card:
+    mode: american
+    enhc_loss_rule: all_bets
+
+player:
+  playing_strategy:
+    type: basic_strategy
+  insurance_strategy:
+    type: never
+  betting_strategy:
+    type: flat
+    amount: 10
+
+output:
+  console: true
+  json_file: null
+  csv_file: null

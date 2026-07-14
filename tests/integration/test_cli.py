@@ -1,0 +1,73 @@
+from pathlib import Path
+
+from blackjack_simulator.cli.main import main
+
+CONFIG = """
+simulation:
+  rounds: 2
+  seed: 123
+bankroll:
+  initial: 100
+player:
+  betting_strategy:
+    type: flat
+    amount: 10
+  playing_strategy:
+    type: basic_strategy
+  insurance_strategy:
+    type: never
+rules:
+  decks: 1
+  penetration: 0.75
+  blackjack_payout: 1.5
+  dealer:
+    hits_soft_17: false
+    peeks_for_blackjack: true
+output:
+  console: true
+"""
+
+
+def write_config(tmp_path: Path) -> Path:
+    path = tmp_path / "config.yaml"
+    path.write_text(CONFIG, encoding="utf-8")
+    return path
+
+
+def test_cli_validate_smoke(tmp_path: Path, capsys) -> None:  # type: ignore[no-untyped-def]
+    config_path = write_config(tmp_path)
+
+    exit_code = main(["validate", str(config_path)])
+
+    assert exit_code == 0
+    assert "Configuration is valid" in capsys.readouterr().out
+
+
+def test_cli_run_smoke(tmp_path: Path, capsys) -> None:  # type: ignore[no-untyped-def]
+    config_path = write_config(tmp_path)
+
+    exit_code = main(["run", str(config_path), "--rounds", "1"])
+
+    output = capsys.readouterr().out
+    assert exit_code == 0
+    assert "Rounds: 1" in output
+
+
+def test_cli_trace_smoke(tmp_path: Path, capsys) -> None:  # type: ignore[no-untyped-def]
+    config_path = write_config(tmp_path)
+
+    exit_code = main(["trace", str(config_path)])
+
+    output = capsys.readouterr().out
+    assert exit_code == 0
+    assert "Round 1:" in output
+
+
+def test_cli_invalid_config_returns_error(tmp_path: Path, capsys) -> None:  # type: ignore[no-untyped-def]
+    path = tmp_path / "invalid.yaml"
+    path.write_text("simulation:\n  rounds: 0\n", encoding="utf-8")
+
+    exit_code = main(["validate", str(path)])
+
+    assert exit_code == 2
+    assert "simulation.rounds" in capsys.readouterr().err

@@ -98,7 +98,11 @@ rules:
 
 ## CLI
 
-The CLI is planned for a later task. No command-line entry point is shipped yet.
+```powershell
+blackjack-simulator validate configs/standard_6_deck_s17.yaml
+blackjack-simulator run configs/standard_6_deck_s17.yaml --rounds 100
+blackjack-simulator trace configs/standard_6_deck_s17.yaml --rounds 1
+```
 
 ## Reports
 

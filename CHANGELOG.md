@@ -33,3 +33,5 @@ Versioning.
   count-based insurance, and true-count betting spread.
 - Streaming statistics collector with Welford variance, house edge, RTP,
   drawdown, streaks, and JSON/CSV/console report output helpers.
+- YAML configuration loading and CLI commands for validate, run, and trace with
+  basic seed/round overrides.
