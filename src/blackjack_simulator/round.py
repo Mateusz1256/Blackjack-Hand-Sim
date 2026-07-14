@@ -11,13 +11,25 @@ from blackjack_simulator.rules import (
     CardSource,
     DealerRules,
     DoubleRules,
+    InsuranceRules,
     SplitRules,
     SurrenderRules,
     SurrenderType,
+    dealer_should_peek,
+    is_insurance_offered,
     legal_player_actions,
     play_dealer_hand,
 )
-from blackjack_simulator.settlement import SettlementResult, settle_hand
+from blackjack_simulator.settlement import (
+    InsuranceSettlement,
+    SettlementResult,
+    settle_hand,
+    settle_insurance,
+)
+from blackjack_simulator.strategies.insurance import (
+    InsuranceStrategy,
+    NeverInsuranceStrategy,
+)
 
 
 class PlayerStrategy(Protocol):
@@ -90,6 +102,7 @@ class RoundResult:
     player_hands: list[Hand]
     dealer_hand: Hand
     settlements: list[SettlementResult]
+    insurance_settlement: InsuranceSettlement | None = None
 
     @property
     def player_hand(self) -> Hand:
@@ -104,6 +117,10 @@ class RoundResult:
         return sum(
             (settlement.net_result for settlement in self.settlements),
             start=Decimal("0"),
+        ) + (
+            self.insurance_settlement.net_result
+            if self.insurance_settlement is not None
+            else Decimal("0")
         )
 
 
@@ -117,10 +134,14 @@ def play_round(
     double_rules: DoubleRules | None = None,
     surrender_rules: SurrenderRules | None = None,
     split_rules: SplitRules | None = None,
+    insurance_rules: InsuranceRules | None = None,
+    insurance_strategy: InsuranceStrategy | None = None,
 ) -> RoundResult:
     double_rules = double_rules or DoubleRules()
     surrender_rules = surrender_rules or SurrenderRules()
     split_rules = split_rules or SplitRules()
+    insurance_rules = insurance_rules or InsuranceRules()
+    insurance_strategy = insurance_strategy or NeverInsuranceStrategy()
     player = Hand(original_bet=bet, current_bet=bet)
     dealer = Hand()
 
@@ -129,8 +150,22 @@ def play_round(
     player.add_card(shoe.draw())
     dealer.add_card(shoe.draw())
 
+    insurance_settlement = _resolve_insurance(
+        player=player,
+        dealer=dealer,
+        rules=insurance_rules,
+        strategy=insurance_strategy,
+    )
+
     if player.is_blackjack():
-        return _complete_round([player], dealer, shoe, blackjack_payout, split_rules)
+        return _complete_round(
+            [player],
+            dealer,
+            shoe,
+            blackjack_payout,
+            split_rules,
+            insurance_settlement,
+        )
 
     if surrender_rules.surrender_type is SurrenderType.EARLY:
         early_legal_actions = legal_player_actions(
@@ -153,10 +188,18 @@ def play_round(
                 shoe,
                 blackjack_payout,
                 split_rules,
+                insurance_settlement,
             )
 
-    if dealer.is_blackjack():
-        return _complete_round([player], dealer, shoe, blackjack_payout, split_rules)
+    if dealer_should_peek(dealer.cards[0], dealer_rules) and dealer.is_blackjack():
+        return _complete_round(
+            [player],
+            dealer,
+            shoe,
+            blackjack_payout,
+            split_rules,
+            insurance_settlement,
+        )
 
     player_hands = [player]
     hand_index = 0
@@ -185,7 +228,39 @@ def play_round(
     if any(not hand.is_bust and not hand.surrendered for hand in player_hands):
         play_dealer_hand(dealer, shoe, dealer_rules)
 
-    return _complete_round(player_hands, dealer, shoe, blackjack_payout, split_rules)
+    return _complete_round(
+        player_hands,
+        dealer,
+        shoe,
+        blackjack_payout,
+        split_rules,
+        insurance_settlement,
+    )
+
+
+def _resolve_insurance(
+    *,
+    player: Hand,
+    dealer: Hand,
+    rules: InsuranceRules,
+    strategy: InsuranceStrategy,
+) -> InsuranceSettlement | None:
+    if not is_insurance_offered(dealer.cards[0], rules):
+        return None
+
+    insurance_bet = strategy.insurance_bet(player=player, rules=rules)
+    if insurance_bet <= 0:
+        return None
+
+    max_bet = player.current_bet * rules.max_bet_fraction
+    if insurance_bet > max_bet:
+        insurance_bet = max_bet
+
+    return settle_insurance(
+        insurance_bet=insurance_bet,
+        dealer_has_blackjack=dealer.is_blackjack(),
+        payout=rules.payout,
+    )
 
 
 def _play_player_hand(
@@ -307,6 +382,7 @@ def _complete_round(
     shoe: RoundShoe,
     blackjack_payout: Decimal,
     split_rules: SplitRules,
+    insurance_settlement: InsuranceSettlement | None,
 ) -> RoundResult:
     for hand in player_hands:
         hand.completed = True
@@ -325,6 +401,7 @@ def _complete_round(
             )
             for hand in player_hands
         ],
+        insurance_settlement=insurance_settlement,
     )
 
     if shoe.needs_shuffle:

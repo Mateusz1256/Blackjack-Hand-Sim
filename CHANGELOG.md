@@ -23,3 +23,5 @@ Versioning.
   surrender, late surrender, and basic-strategy fallback integration.
 - Split rules with resplit limits, split ace restrictions, double-after-split
   checks, multi-hand round settlement, and post-split blackjack handling.
+- Insurance side-bet settlement, always/never/even-money insurance strategies,
+  and American dealer peek behavior.

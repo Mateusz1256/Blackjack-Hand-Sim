@@ -69,3 +69,21 @@ surrender, peek, ENHC, OBO, insurance, and even money.
   matching original bet and one newly dealt card. Split aces receive only one
   card unless `hit_split_aces` is enabled. A post-split 21 is not a blackjack
   unless explicitly configured.
+
+## Insurance and Even Money
+
+- Field: `InsuranceRules`
+- Values: `offered`, `payout`, `max_bet_fraction`
+- Default: disabled, `2:1` payout, maximum half of the current main bet
+- Effect: insurance is offered only when the dealer upcard is an ace. The
+  insurance result is stored separately from main-hand settlements and is added
+  to round net result. `EvenMoneyInsuranceStrategy` takes insurance only when
+  the player has a natural blackjack.
+
+## Dealer Peek
+
+- Field: `DealerRules.peeks_for_blackjack`
+- Values: `true`, `false`
+- Default: `true`
+- Effect: when enabled, dealer blackjack with an ace or ten-value upcard ends
+  the round before player actions after any applicable insurance decision.

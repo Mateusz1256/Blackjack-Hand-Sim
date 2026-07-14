@@ -18,10 +18,42 @@ class Outcome(StrEnum):
     PUSH = "push"
 
 
+class InsuranceOutcome(StrEnum):
+    WIN = "insurance_win"
+    LOSS = "insurance_loss"
+
+
 @dataclass(frozen=True, slots=True)
 class SettlementResult:
     outcome: Outcome
     net_result: Decimal
+
+
+@dataclass(frozen=True, slots=True)
+class InsuranceSettlement:
+    outcome: InsuranceOutcome
+    bet: Decimal
+    net_result: Decimal
+
+
+def settle_insurance(
+    *,
+    insurance_bet: Decimal,
+    dealer_has_blackjack: bool,
+    payout: Decimal,
+) -> InsuranceSettlement:
+    if dealer_has_blackjack:
+        return InsuranceSettlement(
+            outcome=InsuranceOutcome.WIN,
+            bet=insurance_bet,
+            net_result=insurance_bet * payout,
+        )
+
+    return InsuranceSettlement(
+        outcome=InsuranceOutcome.LOSS,
+        bet=insurance_bet,
+        net_result=-insurance_bet,
+    )
 
 
 def settle_hand(

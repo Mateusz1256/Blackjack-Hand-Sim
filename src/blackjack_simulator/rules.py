@@ -1,11 +1,12 @@
 """Table rule primitives used by domain components."""
 
 from dataclasses import dataclass
+from decimal import Decimal
 from enum import StrEnum
 from typing import Protocol
 
 from blackjack_simulator.actions import Action
-from blackjack_simulator.cards import Card, Rank
+from blackjack_simulator.cards import Card, Rank, is_ace, is_ten_value
 from blackjack_simulator.hand import Hand
 
 
@@ -22,6 +23,7 @@ class DealerRules:
     """
 
     hits_soft_17: bool = False
+    peeks_for_blackjack: bool = True
 
 
 @dataclass(frozen=True, slots=True)
@@ -67,6 +69,31 @@ class SplitRules:
             dealer_blackjack_checked=True,
             current_hand_count=current_hand_count,
         )
+
+
+@dataclass(frozen=True, slots=True)
+class InsuranceRules:
+    offered: bool = False
+    payout: Decimal = Decimal("2")
+    max_bet_fraction: Decimal = Decimal("0.5")
+
+    def __post_init__(self) -> None:
+        if self.payout <= 0:
+            msg = "insurance payout must be positive"
+            raise ValueError(msg)
+        if not 0 < self.max_bet_fraction <= 1:
+            msg = "insurance max bet fraction must be greater than 0 and at most 1"
+            raise ValueError(msg)
+
+
+def is_insurance_offered(dealer_upcard: Card, rules: InsuranceRules) -> bool:
+    return rules.offered and is_ace(dealer_upcard)
+
+
+def dealer_should_peek(dealer_upcard: Card, rules: DealerRules) -> bool:
+    return rules.peeks_for_blackjack and (
+        is_ace(dealer_upcard) or is_ten_value(dealer_upcard)
+    )
 
 
 def can_double(hand: Hand, rules: DoubleRules) -> bool:
