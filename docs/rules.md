@@ -40,3 +40,20 @@ surrender, peek, ENHC, OBO, insurance, and even money.
 - Default: S17 when `DealerRules.hits_soft_17` is false
 - Effect: hard, soft, and pair tables choose preferred basic-strategy decisions.
   Decisions whose execution is not currently legal fall back to hit or stand.
+
+## Double
+
+- Field: `DoubleRules`
+- Values: `allowed`, `after_split`, optional `allowed_totals`
+- Default: disabled
+- Effect: when legal, double adds exactly one original bet to the current hand
+  bet, draws one card, and ends player action for that hand.
+
+## Surrender
+
+- Field: `SurrenderRules.surrender_type`
+- Values: `none`, `late`, `early`
+- Default: `none`
+- Effect: surrender settles the hand at net `-current_bet / 2`. Early surrender
+  is offered before dealer blackjack resolution. Late surrender is available
+  only after confirming that dealer blackjack is absent.

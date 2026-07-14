@@ -1,7 +1,12 @@
 from blackjack_simulator.actions import Action
 from blackjack_simulator.cards import Card, Rank
 from blackjack_simulator.hand import Hand
-from blackjack_simulator.rules import DealerRules
+from blackjack_simulator.rules import (
+    DealerRules,
+    DoubleRules,
+    SurrenderRules,
+    legal_player_actions,
+)
 from blackjack_simulator.strategies.basic_strategy import (
     BasicStrategy,
     BasicStrategyProfile,
@@ -114,6 +119,22 @@ def test_double_decision_returns_double_when_double_is_legal() -> None:
         strategy.choose_action(hand_with(Rank.FIVE, Rank.FOUR), upcard(Rank.THREE))
         is Action.DOUBLE
     )
+
+
+def test_double_decision_falls_back_with_dynamic_legal_actions() -> None:
+    strategy = BasicStrategy(
+        BasicStrategyProfile.S17,
+        legal_actions={Action.HIT, Action.STAND, Action.DOUBLE},
+    )
+    hand = hand_with(Rank.FIVE, Rank.FOUR)
+    legal_actions = legal_player_actions(
+        hand,
+        double_rules=DoubleRules(allowed=True, allowed_totals=frozenset({11})),
+        surrender_rules=SurrenderRules(),
+        dealer_blackjack_checked=True,
+    )
+
+    assert strategy.choose_action(hand, upcard(Rank.THREE), legal_actions) is Action.HIT
 
 
 def test_s17_and_h17_profiles_can_differ() -> None:

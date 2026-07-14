@@ -38,9 +38,19 @@ class BasicStrategy:
 
         object.__setattr__(self, "tables", get_tables(self.profile))
 
-    def choose_action(self, hand: Hand, dealer_upcard: Card) -> Action:
+    def choose_action(
+        self,
+        hand: Hand,
+        dealer_upcard: Card,
+        legal_actions: frozenset[Action] | None = None,
+    ) -> Action:
         decision = self.preferred_decision(hand, dealer_upcard)
-        return self._to_legal_action(decision, hand, dealer_upcard)
+        return self._to_legal_action(
+            decision,
+            hand,
+            dealer_upcard,
+            legal_actions or self.legal_actions,
+        )
 
     def preferred_decision(self, hand: Hand, dealer_upcard: Card) -> StrategyDecision:
         dealer_value = _dealer_upcard_value(dealer_upcard)
@@ -57,34 +67,40 @@ class BasicStrategy:
         decision: StrategyDecision,
         hand: Hand,
         dealer_upcard: Card,
+        legal_actions: Set[Action],
     ) -> Action:
         if decision is StrategyDecision.HIT:
             return Action.HIT
         if decision is StrategyDecision.STAND:
             return Action.STAND
         if decision in {StrategyDecision.DOUBLE_HIT, StrategyDecision.DOUBLE_STAND}:
-            if Action.DOUBLE in self.legal_actions:
+            if Action.DOUBLE in legal_actions:
                 return Action.DOUBLE
             if decision is StrategyDecision.DOUBLE_HIT:
                 return Action.HIT
             return Action.STAND
         if decision is StrategyDecision.SURRENDER_HIT:
-            if Action.SURRENDER in self.legal_actions:
+            if Action.SURRENDER in legal_actions:
                 return Action.SURRENDER
             return Action.HIT
         if decision is StrategyDecision.SURRENDER_STAND:
-            if Action.SURRENDER in self.legal_actions:
+            if Action.SURRENDER in legal_actions:
                 return Action.SURRENDER
             return Action.STAND
         if decision is StrategyDecision.SPLIT:
-            if Action.SPLIT in self.legal_actions:
+            if Action.SPLIT in legal_actions:
                 return Action.SPLIT
-            return self._pair_fallback(hand, dealer_upcard)
+            return self._pair_fallback(hand, dealer_upcard, legal_actions)
 
         msg = f"unsupported basic strategy decision: {decision}"
         raise ValueError(msg)
 
-    def _pair_fallback(self, hand: Hand, dealer_upcard: Card) -> Action:
+    def _pair_fallback(
+        self,
+        hand: Hand,
+        dealer_upcard: Card,
+        legal_actions: Set[Action],
+    ) -> Action:
         if len(hand.cards) != 2:
             return Action.HIT
         if hand.cards[0].rank is Rank.ACE:
@@ -96,7 +112,7 @@ class BasicStrategy:
         else:
             fallback = self.tables.hard[_hard_total_key(hand.value)][dealer_value]
 
-        return self._to_legal_action(fallback, hand, dealer_upcard)
+        return self._to_legal_action(fallback, hand, dealer_upcard, legal_actions)
 
 
 def basic_strategy_for_rules(

@@ -8,7 +8,12 @@ from blackjack_simulator.engine import (
     run_simulation,
 )
 from blackjack_simulator.hand import Hand
-from blackjack_simulator.rules import DealerRules
+from blackjack_simulator.rules import (
+    DealerRules,
+    DoubleRules,
+    SurrenderRules,
+    SurrenderType,
+)
 from blackjack_simulator.shoe import Shoe
 from blackjack_simulator.strategies import (
     BasicStrategy,
@@ -22,11 +27,14 @@ __all__ = [
     "BasicStrategyProfile",
     "Card",
     "DealerRules",
+    "DoubleRules",
     "Hand",
     "Rank",
     "Shoe",
     "SimulationConfig",
     "SimulationResult",
+    "SurrenderRules",
+    "SurrenderType",
     "__version__",
     "basic_strategy_for_rules",
     "run_simulation",

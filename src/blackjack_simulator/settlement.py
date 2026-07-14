@@ -10,6 +10,7 @@ from blackjack_simulator.hand import Hand
 class Outcome(StrEnum):
     PLAYER_BLACKJACK = "player_blackjack"
     PLAYER_BUST = "player_bust"
+    PLAYER_SURRENDER = "player_surrender"
     PLAYER_WIN = "player_win"
     DEALER_BLACKJACK = "dealer_blackjack"
     DEALER_BUST = "dealer_bust"
@@ -32,6 +33,9 @@ def settle_hand(
     bet = player.current_bet
     player_blackjack = player.is_blackjack()
     dealer_blackjack = dealer.is_blackjack()
+
+    if player.surrendered:
+        return SettlementResult(Outcome.PLAYER_SURRENDER, -(bet / Decimal("2")))
 
     if player_blackjack and dealer_blackjack:
         return SettlementResult(Outcome.PUSH, Decimal("0"))

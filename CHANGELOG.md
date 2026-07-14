@@ -19,3 +19,5 @@ Versioning.
   bankroll updates, and net-result settlement.
 - Table-driven basic strategy profiles for S17 and H17 with hard, soft, and
   pair tables plus legal-action fallback.
+- Double and surrender rules with action legality, double bet settlement, early
+  surrender, late surrender, and basic-strategy fallback integration.

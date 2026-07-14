@@ -7,12 +7,25 @@ from typing import Protocol
 from blackjack_simulator.actions import Action
 from blackjack_simulator.cards import Card
 from blackjack_simulator.hand import Hand
-from blackjack_simulator.rules import CardSource, DealerRules, play_dealer_hand
+from blackjack_simulator.rules import (
+    CardSource,
+    DealerRules,
+    DoubleRules,
+    SurrenderRules,
+    SurrenderType,
+    legal_player_actions,
+    play_dealer_hand,
+)
 from blackjack_simulator.settlement import SettlementResult, settle_hand
 
 
 class PlayerStrategy(Protocol):
-    def choose_action(self, hand: Hand, dealer_upcard: Card) -> Action:
+    def choose_action(
+        self,
+        hand: Hand,
+        dealer_upcard: Card,
+        legal_actions: frozenset[Action] | None = None,
+    ) -> Action:
         """Return hit or stand for the current hand."""
 
 
@@ -36,8 +49,13 @@ class FixedActionStrategy:
         object.__setattr__(self, "actions", actions or (Action.STAND,))
         object.__setattr__(self, "_calls", 0)
 
-    def choose_action(self, hand: Hand, dealer_upcard: Card) -> Action:
-        del hand, dealer_upcard
+    def choose_action(
+        self,
+        hand: Hand,
+        dealer_upcard: Card,
+        legal_actions: frozenset[Action] | None = None,
+    ) -> Action:
+        del hand, dealer_upcard, legal_actions
         if len(self.actions) == 1:
             return self.actions[0]
 
@@ -53,8 +71,13 @@ class ThresholdStrategy:
 
     stand_on: int = 17
 
-    def choose_action(self, hand: Hand, dealer_upcard: Card) -> Action:
-        del dealer_upcard
+    def choose_action(
+        self,
+        hand: Hand,
+        dealer_upcard: Card,
+        legal_actions: frozenset[Action] | None = None,
+    ) -> Action:
+        del dealer_upcard, legal_actions
         if hand.value < self.stand_on:
             return Action.HIT
 
@@ -75,7 +98,11 @@ def play_round(
     player_strategy: PlayerStrategy,
     bet: Decimal,
     blackjack_payout: Decimal = Decimal("1.5"),
+    double_rules: DoubleRules | None = None,
+    surrender_rules: SurrenderRules | None = None,
 ) -> RoundResult:
+    double_rules = double_rules or DoubleRules()
+    surrender_rules = surrender_rules or SurrenderRules()
     player = Hand(original_bet=bet, current_bet=bet)
     dealer = Hand()
 
@@ -84,24 +111,80 @@ def play_round(
     player.add_card(shoe.draw())
     dealer.add_card(shoe.draw())
 
-    if player.is_blackjack() or dealer.is_blackjack():
+    if player.is_blackjack():
         return _complete_round(player, dealer, shoe, blackjack_payout)
 
-    while not player.is_bust:
-        action = player_strategy.choose_action(player, dealer.cards[0])
+    if surrender_rules.surrender_type is SurrenderType.EARLY:
+        early_legal_actions = legal_player_actions(
+            player,
+            double_rules=DoubleRules(),
+            surrender_rules=surrender_rules,
+            dealer_blackjack_checked=False,
+        )
+        action = _choose_action(
+            player_strategy,
+            player,
+            dealer.cards[0],
+            early_legal_actions,
+        )
+        if action is Action.SURRENDER:
+            player.surrendered = True
+            return _complete_round(player, dealer, shoe, blackjack_payout)
+
+    if dealer.is_blackjack():
+        return _complete_round(player, dealer, shoe, blackjack_payout)
+
+    while not player.is_bust and not player.surrendered:
+        legal_actions = legal_player_actions(
+            player,
+            double_rules=double_rules,
+            surrender_rules=surrender_rules,
+            dealer_blackjack_checked=True,
+        )
+        action = _choose_action(player_strategy, player, dealer.cards[0], legal_actions)
+        if action not in legal_actions:
+            action = _fallback_action(action)
         if action is Action.STAND:
             player.stood = True
             break
         if action is Action.HIT:
             player.add_card(shoe.draw())
             continue
-        msg = f"unsupported action for basic round flow: {action}"
+        if action is Action.DOUBLE:
+            player.current_bet += player.original_bet
+            player.doubled = True
+            player.add_card(shoe.draw())
+            break
+        if action is Action.SURRENDER:
+            player.surrendered = True
+            break
+        msg = f"unsupported action for round flow: {action}"
         raise ValueError(msg)
 
-    if not player.is_bust:
+    if not player.is_bust and not player.surrendered:
         play_dealer_hand(dealer, shoe, dealer_rules)
 
     return _complete_round(player, dealer, shoe, blackjack_payout)
+
+
+def _choose_action(
+    player_strategy: PlayerStrategy,
+    player: Hand,
+    dealer_upcard: Card,
+    legal_actions: frozenset[Action],
+) -> Action:
+    return player_strategy.choose_action(player, dealer_upcard, legal_actions)
+
+
+def _fallback_action(action: Action) -> Action:
+    if action is Action.DOUBLE:
+        return Action.HIT
+    if action is Action.SURRENDER:
+        return Action.HIT
+    if action is Action.SPLIT:
+        return Action.HIT
+
+    return action
 
 
 def _complete_round(
