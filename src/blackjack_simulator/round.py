@@ -11,6 +11,8 @@ from blackjack_simulator.rules import (
     CardSource,
     DealerRules,
     DoubleRules,
+    HoleCardMode,
+    HoleCardRules,
     InsuranceRules,
     SplitRules,
     SurrenderRules,
@@ -23,6 +25,7 @@ from blackjack_simulator.rules import (
 from blackjack_simulator.settlement import (
     InsuranceSettlement,
     SettlementResult,
+    settle_enhc_dealer_blackjack,
     settle_hand,
     settle_insurance,
 )
@@ -136,19 +139,22 @@ def play_round(
     split_rules: SplitRules | None = None,
     insurance_rules: InsuranceRules | None = None,
     insurance_strategy: InsuranceStrategy | None = None,
+    hole_card_rules: HoleCardRules | None = None,
 ) -> RoundResult:
     double_rules = double_rules or DoubleRules()
     surrender_rules = surrender_rules or SurrenderRules()
     split_rules = split_rules or SplitRules()
     insurance_rules = insurance_rules or InsuranceRules()
     insurance_strategy = insurance_strategy or NeverInsuranceStrategy()
+    hole_card_rules = hole_card_rules or HoleCardRules()
     player = Hand(original_bet=bet, current_bet=bet)
     dealer = Hand()
 
     player.add_card(shoe.draw())
     dealer.add_card(shoe.draw())
     player.add_card(shoe.draw())
-    dealer.add_card(shoe.draw())
+    if hole_card_rules.mode is HoleCardMode.AMERICAN:
+        dealer.add_card(shoe.draw())
 
     insurance_settlement = _resolve_insurance(
         player=player,
@@ -158,6 +164,7 @@ def play_round(
     )
 
     if player.is_blackjack():
+        _complete_enhc_dealer_initial_hand(dealer, shoe, hole_card_rules)
         return _complete_round(
             [player],
             dealer,
@@ -165,6 +172,7 @@ def play_round(
             blackjack_payout,
             split_rules,
             insurance_settlement,
+            hole_card_rules,
         )
 
     if surrender_rules.surrender_type is SurrenderType.EARLY:
@@ -189,9 +197,14 @@ def play_round(
                 blackjack_payout,
                 split_rules,
                 insurance_settlement,
+                hole_card_rules,
             )
 
-    if dealer_should_peek(dealer.cards[0], dealer_rules) and dealer.is_blackjack():
+    if (
+        hole_card_rules.mode is HoleCardMode.AMERICAN
+        and dealer_should_peek(dealer.cards[0], dealer_rules)
+        and dealer.is_blackjack()
+    ):
         return _complete_round(
             [player],
             dealer,
@@ -199,6 +212,7 @@ def play_round(
             blackjack_payout,
             split_rules,
             insurance_settlement,
+            hole_card_rules,
         )
 
     player_hands = [player]
@@ -225,7 +239,26 @@ def play_round(
             continue
         hand_index += 1
 
-    if any(not hand.is_bust and not hand.surrendered for hand in player_hands):
+    live_hands = [
+        hand for hand in player_hands if not hand.is_bust and not hand.surrendered
+    ]
+    if live_hands:
+        _complete_enhc_dealer_initial_hand(dealer, shoe, hole_card_rules)
+    if (
+        hole_card_rules.mode is HoleCardMode.EUROPEAN_NO_HOLE_CARD
+        and dealer.is_blackjack()
+    ):
+        return _complete_round(
+            player_hands,
+            dealer,
+            shoe,
+            blackjack_payout,
+            split_rules,
+            insurance_settlement,
+            hole_card_rules,
+            enhc_dealer_blackjack=True,
+        )
+    if live_hands:
         play_dealer_hand(dealer, shoe, dealer_rules)
 
     return _complete_round(
@@ -235,6 +268,7 @@ def play_round(
         blackjack_payout,
         split_rules,
         insurance_settlement,
+        hole_card_rules,
     )
 
 
@@ -245,6 +279,8 @@ def _resolve_insurance(
     rules: InsuranceRules,
     strategy: InsuranceStrategy,
 ) -> InsuranceSettlement | None:
+    if len(dealer.cards) < 2:
+        return None
     if not is_insurance_offered(dealer.cards[0], rules):
         return None
 
@@ -261,6 +297,18 @@ def _resolve_insurance(
         dealer_has_blackjack=dealer.is_blackjack(),
         payout=rules.payout,
     )
+
+
+def _complete_enhc_dealer_initial_hand(
+    dealer: Hand,
+    shoe: RoundShoe,
+    hole_card_rules: HoleCardRules,
+) -> None:
+    if (
+        hole_card_rules.mode is HoleCardMode.EUROPEAN_NO_HOLE_CARD
+        and len(dealer.cards) == 1
+    ):
+        dealer.add_card(shoe.draw())
 
 
 def _play_player_hand(
@@ -383,6 +431,9 @@ def _complete_round(
     blackjack_payout: Decimal,
     split_rules: SplitRules,
     insurance_settlement: InsuranceSettlement | None,
+    hole_card_rules: HoleCardRules,
+    *,
+    enhc_dealer_blackjack: bool = False,
 ) -> RoundResult:
     for hand in player_hands:
         hand.completed = True
@@ -390,17 +441,14 @@ def _complete_round(
     result = RoundResult(
         player_hands=player_hands,
         dealer_hand=dealer,
-        settlements=[
-            settle_hand(
-                player=hand,
-                dealer=dealer,
-                blackjack_payout=blackjack_payout,
-                blackjack_after_split_counts_as_blackjack=(
-                    split_rules.blackjack_after_split_counts_as_blackjack
-                ),
-            )
-            for hand in player_hands
-        ],
+        settlements=_settle_player_hands(
+            player_hands=player_hands,
+            dealer=dealer,
+            blackjack_payout=blackjack_payout,
+            split_rules=split_rules,
+            hole_card_rules=hole_card_rules,
+            enhc_dealer_blackjack=enhc_dealer_blackjack,
+        ),
         insurance_settlement=insurance_settlement,
     )
 
@@ -408,3 +456,38 @@ def _complete_round(
         shoe.reset()
 
     return result
+
+
+def _settle_player_hands(
+    *,
+    player_hands: list[Hand],
+    dealer: Hand,
+    blackjack_payout: Decimal,
+    split_rules: SplitRules,
+    hole_card_rules: HoleCardRules,
+    enhc_dealer_blackjack: bool,
+) -> list[SettlementResult]:
+    if (
+        hole_card_rules.mode is HoleCardMode.EUROPEAN_NO_HOLE_CARD
+        and enhc_dealer_blackjack
+    ):
+        return [
+            settle_enhc_dealer_blackjack(
+                player=hand,
+                loss_rule=hole_card_rules.enhc_loss_rule,
+                is_original_hand=index == 0,
+            )
+            for index, hand in enumerate(player_hands)
+        ]
+
+    return [
+        settle_hand(
+            player=hand,
+            dealer=dealer,
+            blackjack_payout=blackjack_payout,
+            blackjack_after_split_counts_as_blackjack=(
+                split_rules.blackjack_after_split_counts_as_blackjack
+            ),
+        )
+        for hand in player_hands
+    ]

@@ -5,6 +5,7 @@ from decimal import Decimal
 from enum import StrEnum
 
 from blackjack_simulator.hand import Hand
+from blackjack_simulator.rules import EnhcLossRule
 
 
 class Outcome(StrEnum):
@@ -90,5 +91,20 @@ def settle_hand(
         return SettlementResult(Outcome.PLAYER_WIN, bet)
     if dealer.value > player.value:
         return SettlementResult(Outcome.DEALER_WIN, -bet)
+
+    return SettlementResult(Outcome.PUSH, Decimal("0"))
+
+
+def settle_enhc_dealer_blackjack(
+    *,
+    player: Hand,
+    loss_rule: EnhcLossRule,
+    is_original_hand: bool,
+) -> SettlementResult:
+    if loss_rule is EnhcLossRule.ALL_BETS:
+        return SettlementResult(Outcome.DEALER_BLACKJACK, -player.current_bet)
+
+    if is_original_hand:
+        return SettlementResult(Outcome.DEALER_BLACKJACK, -player.original_bet)
 
     return SettlementResult(Outcome.PUSH, Decimal("0"))

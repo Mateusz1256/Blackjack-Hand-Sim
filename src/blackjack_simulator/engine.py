@@ -8,6 +8,7 @@ from blackjack_simulator.round import PlayerStrategy, RoundResult, RoundShoe, pl
 from blackjack_simulator.rules import (
     DealerRules,
     DoubleRules,
+    HoleCardRules,
     InsuranceRules,
     SplitRules,
     SurrenderRules,
@@ -29,6 +30,7 @@ class SimulationConfig:
     surrender_rules: SurrenderRules = field(default_factory=SurrenderRules)
     split_rules: SplitRules = field(default_factory=SplitRules)
     insurance_rules: InsuranceRules = field(default_factory=InsuranceRules)
+    hole_card_rules: HoleCardRules = field(default_factory=HoleCardRules)
 
     def __post_init__(self) -> None:
         if self.rounds < 0:
@@ -74,6 +76,7 @@ def run_simulation(
             split_rules=config.split_rules,
             insurance_rules=config.insurance_rules,
             insurance_strategy=insurance_strategy,
+            hole_card_rules=config.hole_card_rules,
         )
         bankroll += result.net_result
         round_results.append(result)

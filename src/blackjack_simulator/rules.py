@@ -39,9 +39,25 @@ class SurrenderType(StrEnum):
     EARLY = "early"
 
 
+class HoleCardMode(StrEnum):
+    AMERICAN = "american"
+    EUROPEAN_NO_HOLE_CARD = "european_no_hole_card"
+
+
+class EnhcLossRule(StrEnum):
+    ALL_BETS = "all_bets"
+    ORIGINAL_BET_ONLY = "original_bet_only"
+
+
 @dataclass(frozen=True, slots=True)
 class SurrenderRules:
     surrender_type: SurrenderType = SurrenderType.NONE
+
+
+@dataclass(frozen=True, slots=True)
+class HoleCardRules:
+    mode: HoleCardMode = HoleCardMode.AMERICAN
+    enhc_loss_rule: EnhcLossRule = EnhcLossRule.ALL_BETS
 
 
 @dataclass(frozen=True, slots=True)

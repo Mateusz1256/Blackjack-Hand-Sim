@@ -25,3 +25,5 @@ Versioning.
   checks, multi-hand round settlement, and post-split blackjack handling.
 - Insurance side-bet settlement, always/never/even-money insurance strategies,
   and American dealer peek behavior.
+- European no-hole-card dealer flow with `all_bets` and `original_bet_only`
+  settlement variants for dealer blackjack after player actions.

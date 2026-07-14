@@ -87,3 +87,21 @@ surrender, peek, ENHC, OBO, insurance, and even money.
 - Default: `true`
 - Effect: when enabled, dealer blackjack with an ace or ten-value upcard ends
   the round before player actions after any applicable insurance decision.
+
+## European No Hole Card
+
+- Field: `HoleCardRules.mode`
+- Values: `american`, `european_no_hole_card`
+- Default: `american`
+- Effect: in `european_no_hole_card`, dealer starts with only the upcard. The
+  second dealer card is drawn after player actions and before dealer play.
+
+## ENHC Loss Rule
+
+- Field: `HoleCardRules.enhc_loss_rule`
+- Values: `all_bets`, `original_bet_only`
+- Default: `all_bets`
+- Effect: if the dealer blackjack appears after player actions in ENHC,
+  `all_bets` loses current hand bets including double and split wagers.
+  `original_bet_only` loses only one original wager for the round and returns
+  additional wagers as zero-net settlements.
