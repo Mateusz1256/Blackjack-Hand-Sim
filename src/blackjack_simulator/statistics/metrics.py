@@ -17,6 +17,23 @@ class RunningVariance:
         delta_after = value - self.mean
         self._m2 += delta * delta_after
 
+    def merge(self, other: "RunningVariance") -> None:
+        if other.count == 0:
+            return
+        if self.count == 0:
+            self.count = other.count
+            self.mean = other.mean
+            self._m2 = other._m2
+            return
+
+        total_count = self.count + other.count
+        delta = other.mean - self.mean
+        self._m2 += other._m2 + (
+            delta * delta * Decimal(self.count) * Decimal(other.count)
+        ) / Decimal(total_count)
+        self.mean += delta * Decimal(other.count) / Decimal(total_count)
+        self.count = total_count
+
     @property
     def sample_variance(self) -> Decimal:
         if self.count < 2:

@@ -15,6 +15,7 @@ def valid_config_text() -> str:
 simulation:
   rounds: 3
   seed: 123
+  workers: 1
 bankroll:
   initial: 100
 player:
@@ -55,6 +56,7 @@ def test_parse_valid_app_config() -> None:
 
     assert config.simulation.rounds == 3
     assert config.simulation.seed == 123
+    assert config.simulation.workers == 1
     assert config.engine_config.initial_bankroll == Decimal("100")
     assert config.engine_config.betting_amount == Decimal("10")
     assert config.engine_config.surrender_rules.surrender_type is SurrenderType.LATE
@@ -62,10 +64,14 @@ def test_parse_valid_app_config() -> None:
 
 
 def test_parse_config_applies_overrides() -> None:
-    config = parse_app_config(valid_config_text(), overrides={"rounds": 5, "seed": 999})
+    config = parse_app_config(
+        valid_config_text(),
+        overrides={"rounds": 5, "seed": 999, "workers": 2},
+    )
 
     assert config.simulation.rounds == 5
     assert config.simulation.seed == 999
+    assert config.simulation.workers == 2
 
 
 def test_invalid_config_raises_clear_error() -> None:

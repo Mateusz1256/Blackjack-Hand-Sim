@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from blackjack_simulator.configuration import ConfigurationError, load_app_config
-from blackjack_simulator.engine import run_simulation
+from blackjack_simulator.engine import run_simulation, run_worker_simulations
 from blackjack_simulator.output.console import render_console_report
 from blackjack_simulator.output.csv_output import report_to_csv
 from blackjack_simulator.output.json_output import report_to_json
@@ -40,6 +40,7 @@ def _build_parser() -> ArgumentParser:
         command_parser.add_argument("config", type=Path)
         command_parser.add_argument("--rounds", type=int)
         command_parser.add_argument("--seed", type=int)
+        command_parser.add_argument("--workers", type=int)
 
     return parser
 
@@ -52,17 +53,29 @@ def _validate(args: Namespace) -> int:
 
 def _run(args: Namespace) -> int:
     app_config = load_app_config(args.config, overrides=_overrides(args))
-    collector = StatisticsCollector(
-        initial_bankroll=app_config.engine_config.initial_bankroll,
-    )
-    result = run_simulation(
-        shoe=app_config.create_shoe(),
-        config=app_config.engine_config,
-        player_strategy=app_config.create_playing_strategy(),
-        insurance_strategy=app_config.create_insurance_strategy(),
-        betting_strategy=app_config.create_betting_strategy(),
-        statistics_collector=collector,
-    )
+    if app_config.simulation.workers > 1:
+        result = run_worker_simulations(
+            config=app_config.engine_config,
+            shoe_config=app_config.create_worker_shoe_config(),
+            top_level_seed=app_config.simulation.seed,
+            worker_count=app_config.simulation.workers,
+            player_strategy_factory=app_config.create_playing_strategy_factory(),
+            insurance_strategy_factory=app_config.create_insurance_strategy_factory(),
+            betting_strategy_factory=app_config.create_betting_strategy_factory(),
+        )
+    else:
+        collector = StatisticsCollector(
+            initial_bankroll=app_config.engine_config.initial_bankroll,
+        )
+        result = run_simulation(
+            shoe=app_config.create_shoe(),
+            config=app_config.engine_config,
+            player_strategy=app_config.create_playing_strategy(),
+            insurance_strategy=app_config.create_insurance_strategy(),
+            betting_strategy=app_config.create_betting_strategy(),
+            statistics_collector=collector,
+            store_rounds=False,
+        )
     report = result.statistics
     if report is None:
         return 1
@@ -106,6 +119,8 @@ def _overrides(args: Namespace) -> dict[str, int]:
         overrides["rounds"] = args.rounds
     if args.seed is not None:
         overrides["seed"] = args.seed
+    if args.workers is not None:
+        overrides["workers"] = args.workers
     return overrides
 
 

@@ -1,6 +1,6 @@
 simulation:
   rounds: 1000
-  seed: 123456
+  seed: 789012
   workers: 1
 
 bankroll:
@@ -13,13 +13,13 @@ rules:
   blackjack_payout: 1.5
   dealer:
     hits_soft_17: false
-    peeks_for_blackjack: true
+    peeks_for_blackjack: false
   double:
     allowed: true
     after_split: true
     allowed_totals: [9, 10, 11]
   surrender:
-    type: late
+    type: none
   split:
     allowed: true
     max_hands: 4
@@ -29,12 +29,12 @@ rules:
     double_after_split_aces: false
     blackjack_after_split_counts_as_blackjack: false
   insurance:
-    offered: true
+    offered: false
     payout: 2
     max_bet_fraction: 0.5
   hole_card:
-    mode: american
-    enhc_loss_rule: all_bets
+    mode: european_no_hole_card
+    enhc_loss_rule: original_bet_only
 
 player:
   playing_strategy:

@@ -1,7 +1,9 @@
 """YAML configuration loading and validation."""
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from decimal import Decimal
+from functools import partial
 from pathlib import Path
 from random import Random
 from typing import Any
@@ -10,7 +12,11 @@ import yaml
 
 from blackjack_simulator.betting import FlatBettingStrategy
 from blackjack_simulator.betting.base import BettingStrategy
-from blackjack_simulator.engine import SimulationConfig
+from blackjack_simulator.engine import (
+    FlatBettingStrategyFactory,
+    SimulationConfig,
+    WorkerShoeConfig,
+)
 from blackjack_simulator.exceptions import BlackjackSimulatorError
 from blackjack_simulator.rules import (
     DealerRules,
@@ -42,6 +48,7 @@ class ConfigurationError(BlackjackSimulatorError):
 class SimulationSettings:
     rounds: int
     seed: int
+    workers: int = 1
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,6 +84,9 @@ class AppConfig:
     def create_playing_strategy(self) -> BasicStrategy:
         return basic_strategy_for_rules(self.engine_config.dealer_rules)
 
+    def create_playing_strategy_factory(self) -> Callable[[], BasicStrategy]:
+        return partial(basic_strategy_for_rules, self.engine_config.dealer_rules)
+
     def create_insurance_strategy(self) -> InsuranceStrategy:
         if self.insurance_strategy_type == "always":
             return AlwaysInsuranceStrategy()
@@ -96,6 +106,29 @@ class AppConfig:
 
     def create_betting_strategy(self) -> BettingStrategy:
         return FlatBettingStrategy(self.engine_config.betting_amount)
+
+    def create_insurance_strategy_factory(
+        self,
+    ) -> Callable[[], InsuranceStrategy]:
+        if self.insurance_strategy_type == "always":
+            return AlwaysInsuranceStrategy
+        if self.insurance_strategy_type == "even_money":
+            return EvenMoneyInsuranceStrategy
+        if self.insurance_strategy_type == "never":
+            return NeverInsuranceStrategy
+
+        self.create_insurance_strategy()
+        return NeverInsuranceStrategy
+
+    def create_betting_strategy_factory(self) -> Callable[[], BettingStrategy]:
+        return FlatBettingStrategyFactory(self.engine_config.betting_amount)
+
+    def create_worker_shoe_config(self) -> WorkerShoeConfig:
+        return WorkerShoeConfig(
+            decks=self.shoe.decks,
+            penetration=self.shoe.penetration,
+            shuffle_after_each_round=self.shoe.shuffle_after_each_round,
+        )
 
 
 def load_app_config(
@@ -183,9 +216,11 @@ def _parse_simulation(raw: object, overrides: dict[str, int]) -> SimulationSetti
     data = _mapping(raw, "simulation")
     rounds = overrides.get("rounds", data.get("rounds", 1))
     seed = overrides.get("seed", data.get("seed", 1))
+    workers = overrides.get("workers", data.get("workers", 1))
     return SimulationSettings(
         rounds=_positive_int(rounds, "simulation.rounds"),
         seed=_int(seed, "simulation.seed"),
+        workers=_positive_int(workers, "simulation.workers"),
     )
 
 

@@ -6,6 +6,7 @@ CONFIG = """
 simulation:
   rounds: 2
   seed: 123
+  workers: 1
 bankroll:
   initial: 100
 player:
@@ -47,6 +48,16 @@ def test_cli_run_smoke(tmp_path: Path, capsys) -> None:  # type: ignore[no-untyp
     config_path = write_config(tmp_path)
 
     exit_code = main(["run", str(config_path), "--rounds", "1"])
+
+    output = capsys.readouterr().out
+    assert exit_code == 0
+    assert "Rounds: 1" in output
+
+
+def test_cli_run_accepts_worker_override(tmp_path: Path, capsys) -> None:  # type: ignore[no-untyped-def]
+    config_path = write_config(tmp_path)
+
+    exit_code = main(["run", str(config_path), "--rounds", "1", "--workers", "1"])
 
     output = capsys.readouterr().out
     assert exit_code == 0

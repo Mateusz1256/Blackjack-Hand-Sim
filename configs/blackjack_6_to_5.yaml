@@ -1,6 +1,6 @@
 simulation:
   rounds: 1000
-  seed: 123456
+  seed: 654321
   workers: 1
 
 bankroll:
@@ -10,16 +10,16 @@ rules:
   decks: 6
   penetration: 0.75
   shuffle_after_each_round: false
-  blackjack_payout: 1.5
+  blackjack_payout: 1.2
   dealer:
-    hits_soft_17: false
+    hits_soft_17: true
     peeks_for_blackjack: true
   double:
     allowed: true
     after_split: true
     allowed_totals: [9, 10, 11]
   surrender:
-    type: late
+    type: none
   split:
     allowed: true
     max_hands: 4

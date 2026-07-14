@@ -13,9 +13,15 @@ from blackjack_simulator.betting import (
 from blackjack_simulator.cards import Card, Rank
 from blackjack_simulator.counting import HiLoCounter
 from blackjack_simulator.engine import (
+    FlatBettingStrategyFactory,
     SimulationConfig,
     SimulationResult,
+    WorkerShoeConfig,
+    WorkerSimulationResult,
+    derive_worker_seed,
     run_simulation,
+    run_worker_simulations,
+    split_worker_rounds,
 )
 from blackjack_simulator.exceptions import InsufficientBankrollError
 from blackjack_simulator.hand import Hand
@@ -65,6 +71,7 @@ __all__ = [
     "EvenMoneyInsuranceStrategy",
     "FibonacciBettingStrategy",
     "FlatBettingStrategy",
+    "FlatBettingStrategyFactory",
     "Hand",
     "HiLoCounter",
     "HoleCardMode",
@@ -86,12 +93,17 @@ __all__ = [
     "SurrenderType",
     "TableLimits",
     "TrueCountSpreadBettingStrategy",
+    "WorkerShoeConfig",
+    "WorkerSimulationResult",
     "__version__",
     "basic_strategy_for_rules",
+    "derive_worker_seed",
     "render_console_report",
     "report_to_csv",
     "report_to_json",
     "run_simulation",
+    "run_worker_simulations",
+    "split_worker_rounds",
 ]
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"

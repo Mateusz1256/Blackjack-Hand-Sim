@@ -1,10 +1,10 @@
 simulation:
-  rounds: 1000
-  seed: 123456
-  workers: 1
+  rounds: 1000000
+  seed: 20260714
+  workers: 4
 
 bankroll:
-  initial: 10000
+  initial: 10000000
 
 rules:
   decks: 6
@@ -46,6 +46,6 @@ player:
     amount: 10
 
 output:
-  console: true
+  console: false
   json_file: null
   csv_file: null

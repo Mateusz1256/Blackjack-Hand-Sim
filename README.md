@@ -1,8 +1,7 @@
 # Blackjack Simulator
 
-Blackjack Simulator is a planned open source engine for deterministic,
-configurable blackjack simulations. The project currently includes the project
-foundation plus the first domain primitives for cards and hands.
+Blackjack Simulator is an open source engine for deterministic, configurable
+blackjack simulations.
 
 This project is a simulation and education tool. It does not guarantee profit
 and is not financial advice or an encouragement to gamble.
@@ -22,7 +21,7 @@ and is not financial advice or an encouragement to gamble.
 - Basic strategy profiles matched to table rules.
 - Flat betting plus progressive systems such as Martingale, Paroli, Fibonacci,
   and D'Alembert.
-- Streaming statistics, JSON/CSV export, and a CLI.
+- Streaming statistics, JSON/CSV export, CLI, and deterministic worker runs.
 
 ## Requirements
 
@@ -39,10 +38,10 @@ python -m pip install -e ".[dev]"
 
 ## Quick Start
 
-At this stage the package exposes card, hand, shoe, dealer-rule, hole-card,
-double, split, surrender, insurance, basic strategy, basic round, settlement,
-flat/progressive betting, Hi-Lo counting, streaming statistics, report output,
-and simple simulation primitives.
+The package exposes cards, hands, shoe/dealer rules, hole-card models, double,
+split, surrender, insurance, basic strategy, settlement, flat/progressive
+betting, Hi-Lo counting, streaming statistics, report output, CLI, and worker
+simulation primitives.
 
 ```python
 import random
@@ -81,8 +80,9 @@ print(result.final_bankroll)
 
 ## Configuration Example
 
-The final CLI will accept YAML configuration. The full schema will be introduced
-in later tasks.
+The CLI accepts YAML configuration such as
+`configs/standard_6_deck_s17.yaml`. Additional examples cover H17, 6:5
+blackjack payout, European no-hole-card, and a million-round validation run.
 
 ```yaml
 simulation:
@@ -102,13 +102,15 @@ rules:
 blackjack-simulator validate configs/standard_6_deck_s17.yaml
 blackjack-simulator run configs/standard_6_deck_s17.yaml --rounds 100
 blackjack-simulator trace configs/standard_6_deck_s17.yaml --rounds 1
+blackjack-simulator run configs/validation_1m.yaml
 ```
 
-## Reports
+## Reports and Workers
 
-Reports are planned to include bankroll history, expected value, RTP, house
-edge, drawdown, streaks, and confidence intervals. They are not implemented in
-this step.
+Reports include streaming aggregates such as RTP, house edge, drawdown,
+streaks, and variance. `run_worker_simulations` can split simulations across
+deterministically seeded workers and merge their statistics without sharing
+mutable simulation state.
 
 ## Tests
 

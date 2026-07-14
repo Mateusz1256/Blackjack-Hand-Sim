@@ -7,6 +7,8 @@ Versioning.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-07-14
+
 ### Added
 
 - Project foundation with Python packaging, linting, formatting, typing, tests,
@@ -35,3 +37,7 @@ Versioning.
   drawdown, streaks, and JSON/CSV/console report output helpers.
 - YAML configuration loading and CLI commands for validate, run, and trace with
   basic seed/round overrides.
+- Deterministic worker simulation helpers with worker seed derivation, round
+  splitting, multiprocessing support, and statistics collector merging.
+- MVP validation assets with H17, 6:5 blackjack, ENHC, and million-round example
+  configurations.

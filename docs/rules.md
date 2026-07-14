@@ -157,3 +157,22 @@ surrender, peek, ENHC, OBO, insurance, and even money.
 - Overrides: `--rounds`, `--seed`
 - Effect: YAML is converted into typed domain configuration before the engine is
   called. The CLI does not implement game behavior directly.
+
+## Worker Simulation
+
+- Fields: `WorkerShoeConfig`, `run_worker_simulations`
+- Values: top-level seed, positive worker count, per-worker strategy factories
+- Effect: rounds are split deterministically across workers. Each worker gets a
+  derived seed and its own shoe, strategies, and statistics collector. Worker
+  collectors are merged in worker-index order to avoid nondeterministic
+  aggregation from process completion order.
+
+## MVP Example Configurations
+
+- `standard_6_deck_s17.yaml`: six-deck S17 American hole-card baseline.
+- `standard_6_deck_h17.yaml`: six-deck H17 American hole-card variant.
+- `blackjack_6_to_5.yaml`: H17 game with 6:5 blackjack payout.
+- `european_no_hole_card.yaml`: ENHC with original-bet-only dealer blackjack
+  loss handling.
+- `validation_1m.yaml`: deterministic million-round validation profile using
+  four workers.

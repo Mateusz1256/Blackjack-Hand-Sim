@@ -1,10 +1,8 @@
 # Architecture
 
-This document describes the planned architecture. The current codebase contains
-the project foundation, card/hand primitives, deterministic shoe behavior, and
-dealer S17/H17 drawing rules. It also contains a basic no-split/no-double round
-flow, net settlement, flat betting, table-driven basic strategy, and multi-round
-bankroll orchestration.
+This document describes the MVP architecture. The codebase separates blackjack
+domain behavior, strategy selection, betting systems, configuration, reporting,
+CLI orchestration, and deterministic worker execution.
 
 ## Module Diagram
 
@@ -27,7 +25,7 @@ Domain modules must not depend on CLI, presentation, filesystem formats, or a
 future web API. Configuration loading should create typed configuration objects
 and pass them into the engine.
 
-Planned layers:
+Layers:
 
 - `cards`, `hand`, `shoe`, and `rules`: core domain objects.
 - `round`, `settlement`, and `engine`: game flow and simulation orchestration.
@@ -46,40 +44,39 @@ Planned layers:
 7. Statistics are updated once per round with hand-level detail.
 8. Shoe penetration is checked before the next round.
 
-The current implementation covers steps 1, 2, 4, 5, 6, and 8 for a single player
-hand without split, double, surrender, insurance, or ENHC.
-
 ## Basic Strategy Selection
 
-Basic strategy will be selected from a profile keyed by relevant table rules:
-dealer S17/H17, double rules, surrender availability, DAS, split rules, and
-blackjack payout where it changes expected decisions.
+Basic strategy is selected from a profile keyed by dealer S17/H17 behavior.
+The round engine passes legal actions for the active table rules, and the
+strategy maps preferred table decisions through those legal actions.
 
 Strategies must return legal fallback actions when a preferred action is not
 available under the active rules.
 
-The current implementation provides S17 and H17 table profiles. Tables can
-prefer double, split, or surrender-shaped decisions, but the strategy maps them
-through the set of legal actions. With the current round engine, the default
-legal set is hit/stand, so basic strategy never asks the round flow to execute
-features that are scheduled for later tasks.
+The implementation provides S17 and H17 table profiles. Tables can prefer hit,
+stand, double, split, or surrender-shaped decisions; illegal preferred actions
+fall back to legal hit/stand behavior.
 
 ## Bankroll Settlement
 
 Settlement records net profit or loss separately from returned stake. Splits,
-doubles, surrender, insurance, and ENHC variants must be represented explicitly
-so statistics can distinguish initial wager from total action.
-
-The current basic settlement returns only net results: blackjack pays the
+doubles, surrender, insurance, and ENHC variants are represented explicitly so
+statistics can distinguish initial wager from total action. Blackjack pays the
 configured profit multiplier, normal wins pay even money, losses are negative
 current bet, and pushes are zero.
 
 ## Statistics
 
-Statistics should be streaming and mergeable. Large simulations must not require
-storing every round. Planned metrics include net result, RTP, house edge,
-standard deviation, confidence intervals, drawdown, streaks, and bankroll
-history sampling.
+Statistics are streaming and mergeable. Large report-only simulations can run
+without storing every round result. Metrics include net result, average round
+result, variance, RTP, house edge, drawdown, and streaks.
+
+## Worker Execution
+
+`run_worker_simulations` splits rounds deterministically, derives one seed per
+worker from the top-level seed, creates independent shoe and strategy instances,
+and merges worker collectors in worker-index order. Completion order from
+processes does not affect the aggregate report.
 
 ## Extending Strategies
 

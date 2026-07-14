@@ -12,7 +12,7 @@ rules:
   shuffle_after_each_round: false
   blackjack_payout: 1.5
   dealer:
-    hits_soft_17: false
+    hits_soft_17: true
     peeks_for_blackjack: true
   double:
     allowed: true
