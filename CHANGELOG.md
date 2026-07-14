@@ -13,3 +13,5 @@ Versioning.
   documentation, task plan, and CI configuration.
 - Card and hand domain primitives with ace valuation, soft/hard hand detection,
   blackjack detection, bust detection, and pair detection.
+- Deterministic shoe generation with deck count, penetration tracking, injected
+  RNG shuffling, and S17/H17 dealer drawing behavior.

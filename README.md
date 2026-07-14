@@ -39,14 +39,20 @@ python -m pip install -e ".[dev]"
 
 ## Quick Start
 
-At this stage the package exposes card and hand primitives.
+At this stage the package exposes card, hand, shoe, and dealer-rule primitives.
 
 ```python
-from blackjack_simulator import Card, Hand, Rank
+import random
+
+from blackjack_simulator import Card, DealerRules, Hand, Rank, Shoe
 
 hand = Hand(cards=[Card(Rank.ACE), Card(Rank.KING)])
 print(hand.value)
 print(hand.is_blackjack())
+
+shoe = Shoe(decks=6, penetration=0.75, rng=random.Random(123))
+print(shoe.draw())
+print(DealerRules(hits_soft_17=False))
 ```
 
 ## Configuration Example

@@ -1,7 +1,8 @@
 # Architecture
 
 This document describes the planned architecture. The current codebase contains
-the project foundation and the first card/hand domain primitives.
+the project foundation, card/hand primitives, deterministic shoe behavior, and
+dealer S17/H17 drawing rules.
 
 ## Module Diagram
 
