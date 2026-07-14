@@ -11,3 +11,5 @@ Versioning.
 
 - Project foundation with Python packaging, linting, formatting, typing, tests,
   documentation, task plan, and CI configuration.
+- Card and hand domain primitives with ace valuation, soft/hard hand detection,
+  blackjack detection, bust detection, and pair detection.

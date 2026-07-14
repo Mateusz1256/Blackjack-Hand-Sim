@@ -1,9 +1,8 @@
 # Blackjack Simulator
 
 Blackjack Simulator is a planned open source engine for deterministic,
-configurable blackjack simulations. The project is currently at the foundation
-stage: packaging, tooling, documentation, CI, and task planning are in place,
-but the game engine is intentionally not implemented yet.
+configurable blackjack simulations. The project currently includes the project
+foundation plus the first domain primitives for cards and hands.
 
 This project is a simulation and education tool. It does not guarantee profit
 and is not financial advice or an encouragement to gamble.
@@ -40,12 +39,14 @@ python -m pip install -e ".[dev]"
 
 ## Quick Start
 
-At this stage the package only exposes metadata and a smoke-testable import.
+At this stage the package exposes card and hand primitives.
 
 ```python
-import blackjack_simulator
+from blackjack_simulator import Card, Hand, Rank
 
-print(blackjack_simulator.__version__)
+hand = Hand(cards=[Card(Rank.ACE), Card(Rank.KING)])
+print(hand.value)
+print(hand.is_blackjack())
 ```
 
 ## Configuration Example

@@ -1,7 +1,7 @@
 # Architecture
 
 This document describes the planned architecture. The current codebase contains
-only the project foundation.
+the project foundation and the first card/hand domain primitives.
 
 ## Module Diagram
 
