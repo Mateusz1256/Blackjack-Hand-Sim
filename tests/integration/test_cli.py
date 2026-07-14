@@ -71,7 +71,39 @@ def test_cli_trace_smoke(tmp_path: Path, capsys) -> None:  # type: ignore[no-unt
 
     output = capsys.readouterr().out
     assert exit_code == 0
-    assert "Round 1:" in output
+    assert "Round 1" in output
+    assert "round_started" in output
+    assert "card_dealt" in output
+
+
+def test_cli_trace_writes_json(tmp_path: Path) -> None:
+    config_path = write_config(tmp_path)
+    output_path = tmp_path / "trace.json"
+
+    exit_code = main(["trace", str(config_path), "--json-file", str(output_path)])
+
+    payload = output_path.read_text(encoding="utf-8")
+    assert exit_code == 0
+    assert '"type": "round_started"' in payload
+    assert '"round_number": 1' in payload
+
+
+def test_cli_trace_filters_event_type(tmp_path: Path, capsys) -> None:  # type: ignore[no-untyped-def]
+    config_path = write_config(tmp_path)
+
+    exit_code = main(
+        [
+            "trace",
+            str(config_path),
+            "--event-type",
+            "round_settled",
+        ],
+    )
+
+    output = capsys.readouterr().out
+    assert exit_code == 0
+    assert "round_settled" in output
+    assert "card_dealt" not in output
 
 
 def test_cli_invalid_config_returns_error(tmp_path: Path, capsys) -> None:  # type: ignore[no-untyped-def]

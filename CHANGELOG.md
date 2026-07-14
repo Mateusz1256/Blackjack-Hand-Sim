@@ -13,6 +13,7 @@ Versioning.
   D'Alembert, and true-count spread betting, including table limits.
 - Typed trace event model and optional in-memory collector for round replay
   groundwork.
+- CLI trace report rendering with event-type/feature filters and JSON export.
 
 ## [1.0.0] - 2026-07-14
 
