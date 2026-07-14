@@ -56,6 +56,7 @@ from blackjack_simulator.strategies import (
     NeverInsuranceStrategy,
     basic_strategy_for_rules,
 )
+from blackjack_simulator.trace import TraceCollector, TraceEvent, TraceEventType
 
 __all__ = [
     "Action",
@@ -92,6 +93,9 @@ __all__ = [
     "SurrenderRules",
     "SurrenderType",
     "TableLimits",
+    "TraceCollector",
+    "TraceEvent",
+    "TraceEventType",
     "TrueCountSpreadBettingStrategy",
     "WorkerShoeConfig",
     "WorkerSimulationResult",

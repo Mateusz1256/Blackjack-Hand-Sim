@@ -15,6 +15,7 @@ flowchart TD
     Round --> InsuranceStrategy[Insurance Strategy]
     Engine --> BettingStrategy[Betting Strategy]
     Round --> Settlement[Settlement]
+    Round --> TraceCollector[Trace Collector]
     Settlement --> StatisticsCollector[Statistics Collector]
     StatisticsCollector --> Report[Reports and Exports]
 ```
@@ -31,6 +32,7 @@ Layers:
 - `round`, `settlement`, and `engine`: game flow and simulation orchestration.
 - `strategies`, `betting`, and `counting`: replaceable decision components.
 - `statistics` and `output`: reporting without changing domain behavior.
+- `trace`: optional structured event collection for replay and diagnostics.
 - `cli`: user-facing command line wrapper around the engine.
 
 ## Single Round Flow
@@ -43,6 +45,11 @@ Layers:
 6. Settlement computes net results for each hand and side bet.
 7. Statistics are updated once per round with hand-level detail.
 8. Shoe penetration is checked before the next round.
+
+When a `TraceCollector` is supplied, the engine and round flow emit ordered
+events for round start/end, initial bet placement, card deals, strategy
+requests/resolution, player actions, hand settlement, insurance settlement, and
+shoe shuffle. Without a collector, no trace events are built.
 
 ## Basic Strategy Selection
 

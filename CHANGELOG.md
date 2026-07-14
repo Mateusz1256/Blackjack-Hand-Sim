@@ -11,6 +11,8 @@ Versioning.
 
 - YAML betting strategy configuration for flat, Martingale, Paroli, Fibonacci,
   D'Alembert, and true-count spread betting, including table limits.
+- Typed trace event model and optional in-memory collector for round replay
+  groundwork.
 
 ## [1.0.0] - 2026-07-14
 

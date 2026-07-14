@@ -33,6 +33,8 @@ from blackjack_simulator.strategies.insurance import (
     InsuranceStrategy,
     NeverInsuranceStrategy,
 )
+from blackjack_simulator.trace import TraceCollector, TraceEventType
+from blackjack_simulator.trace.events import TraceValue
 
 
 class PlayerStrategy(Protocol):
@@ -141,6 +143,8 @@ def play_round(
     insurance_strategy: InsuranceStrategy | None = None,
     hole_card_rules: HoleCardRules | None = None,
     card_counter: CardCounter | None = None,
+    trace_collector: TraceCollector | None = None,
+    round_number: int = 1,
 ) -> RoundResult:
     double_rules = double_rules or DoubleRules()
     surrender_rules = surrender_rules or SurrenderRules()
@@ -151,11 +155,51 @@ def play_round(
     player = Hand(original_bet=bet, current_bet=bet)
     dealer = Hand()
 
-    _draw_visible_card(shoe, player, card_counter)
-    _draw_visible_card(shoe, dealer, card_counter)
-    _draw_visible_card(shoe, player, card_counter)
+    _draw_visible_card(
+        shoe,
+        player,
+        card_counter,
+        trace_collector,
+        round_number,
+        hand_id="player_0",
+        recipient="player",
+        reason="initial_deal",
+    )
+    _draw_visible_card(
+        shoe,
+        dealer,
+        card_counter,
+        trace_collector,
+        round_number,
+        hand_id="dealer",
+        recipient="dealer",
+        reason="initial_deal",
+    )
+    _draw_visible_card(
+        shoe,
+        player,
+        card_counter,
+        trace_collector,
+        round_number,
+        hand_id="player_0",
+        recipient="player",
+        reason="initial_deal",
+    )
     if hole_card_rules.mode is HoleCardMode.AMERICAN:
-        dealer.add_card(shoe.draw())
+        card = shoe.draw()
+        dealer.add_card(card)
+        _trace(
+            trace_collector,
+            TraceEventType.CARD_DEALT,
+            round_number=round_number,
+            hand_id="dealer",
+            details={
+                "recipient": "dealer",
+                "card": _card_token(card),
+                "visible": False,
+                "reason": "hole_card",
+            },
+        )
 
     insurance_settlement = _resolve_insurance(
         player=player,
@@ -177,6 +221,8 @@ def play_round(
             insurance_settlement,
             hole_card_rules,
             card_counter,
+            trace_collector,
+            round_number,
         )
 
     if surrender_rules.surrender_type is SurrenderType.EARLY:
@@ -191,9 +237,19 @@ def play_round(
             player,
             dealer.cards[0],
             early_legal_actions,
+            trace_collector,
+            round_number,
+            "player_0",
         )
         if action is Action.SURRENDER:
             player.surrendered = True
+            _trace_player_action(
+                trace_collector,
+                round_number,
+                "player_0",
+                TraceEventType.PLAYER_SURRENDERED,
+                action,
+            )
             return _complete_round(
                 [player],
                 dealer,
@@ -203,6 +259,8 @@ def play_round(
                 insurance_settlement,
                 hole_card_rules,
                 card_counter,
+                trace_collector,
+                round_number,
             )
 
     if (
@@ -220,6 +278,8 @@ def play_round(
             insurance_settlement,
             hole_card_rules,
             card_counter,
+            trace_collector,
+            round_number,
         )
 
     player_hands = [player]
@@ -242,6 +302,8 @@ def play_round(
             surrender_rules,
             split_rules,
             card_counter,
+            trace_collector,
+            round_number,
         )
         if hand_was_split:
             continue
@@ -265,11 +327,20 @@ def play_round(
             insurance_settlement,
             hole_card_rules,
             card_counter,
+            trace_collector,
+            round_number,
             enhc_dealer_blackjack=True,
         )
     if live_hands:
         _reveal_dealer_hole_card(dealer, card_counter)
-        _play_visible_dealer_hand(dealer, shoe, dealer_rules, card_counter)
+        _play_visible_dealer_hand(
+            dealer,
+            shoe,
+            dealer_rules,
+            card_counter,
+            trace_collector,
+            round_number,
+        )
 
     return _complete_round(
         player_hands,
@@ -280,6 +351,8 @@ def play_round(
         insurance_settlement,
         hole_card_rules,
         card_counter,
+        trace_collector,
+        round_number,
     )
 
 
@@ -323,10 +396,29 @@ def _draw_visible_card(
     shoe: RoundShoe,
     hand: Hand,
     card_counter: CardCounter | None,
+    trace_collector: TraceCollector | None,
+    round_number: int,
+    *,
+    hand_id: str,
+    recipient: str,
+    reason: str,
 ) -> Card:
     card = shoe.draw()
     hand.add_card(card)
     _observe_card(card_counter, card)
+    _trace(
+        trace_collector,
+        TraceEventType.CARD_DEALT,
+        round_number=round_number,
+        hand_id=hand_id,
+        details={
+            "recipient": recipient,
+            "card": _card_token(card),
+            "visible": True,
+            "reason": reason,
+            "hand_value": hand.value,
+        },
+    )
     return card
 
 
@@ -348,12 +440,23 @@ def _complete_enhc_dealer_initial_hand(
     shoe: RoundShoe,
     hole_card_rules: HoleCardRules,
     card_counter: CardCounter | None,
+    trace_collector: TraceCollector | None = None,
+    round_number: int = 1,
 ) -> None:
     if (
         hole_card_rules.mode is HoleCardMode.EUROPEAN_NO_HOLE_CARD
         and len(dealer.cards) == 1
     ):
-        _draw_visible_card(shoe, dealer, card_counter)
+        _draw_visible_card(
+            shoe,
+            dealer,
+            card_counter,
+            trace_collector,
+            round_number,
+            hand_id="dealer",
+            recipient="dealer",
+            reason="enhc_second_card",
+        )
 
 
 def _play_player_hand(
@@ -367,7 +470,10 @@ def _play_player_hand(
     surrender_rules: SurrenderRules,
     split_rules: SplitRules,
     card_counter: CardCounter | None,
+    trace_collector: TraceCollector | None,
+    round_number: int,
 ) -> bool:
+    hand_id = f"player_{hand_index}"
     while not hand.is_bust and not hand.surrendered:
         legal_actions = legal_player_actions(
             hand,
@@ -377,29 +483,106 @@ def _play_player_hand(
             dealer_blackjack_checked=True,
             current_hand_count=len(player_hands),
         )
-        action = _choose_action(player_strategy, hand, dealer_upcard, legal_actions)
+        preferred_action = _choose_action(
+            player_strategy,
+            hand,
+            dealer_upcard,
+            legal_actions,
+            trace_collector,
+            round_number,
+            hand_id,
+        )
+        action = preferred_action
         if action not in legal_actions:
             action = _fallback_action(action)
+        _trace(
+            trace_collector,
+            TraceEventType.STRATEGY_DECISION_RESOLVED,
+            round_number=round_number,
+            hand_id=hand_id,
+            details={
+                "preferred_action": preferred_action.value,
+                "executed_action": action.value,
+                "fallback_applied": action is not preferred_action,
+            },
+        )
         if action is Action.STAND:
             hand.stood = True
+            _trace_player_action(
+                trace_collector,
+                round_number,
+                hand_id,
+                TraceEventType.PLAYER_STOOD,
+                action,
+            )
             break
         if action is Action.HIT:
-            _draw_visible_card(shoe, hand, card_counter)
+            _trace_player_action(
+                trace_collector,
+                round_number,
+                hand_id,
+                TraceEventType.PLAYER_HIT,
+                action,
+            )
+            _draw_visible_card(
+                shoe,
+                hand,
+                card_counter,
+                trace_collector,
+                round_number,
+                hand_id=hand_id,
+                recipient="player",
+                reason="hit",
+            )
             continue
         if action is Action.DOUBLE:
             hand.current_bet += hand.original_bet
             hand.doubled = True
-            _draw_visible_card(shoe, hand, card_counter)
+            _trace_player_action(
+                trace_collector,
+                round_number,
+                hand_id,
+                TraceEventType.PLAYER_DOUBLED,
+                action,
+                {"current_bet": hand.current_bet},
+            )
+            _draw_visible_card(
+                shoe,
+                hand,
+                card_counter,
+                trace_collector,
+                round_number,
+                hand_id=hand_id,
+                recipient="player",
+                reason="double",
+            )
             break
         if action is Action.SURRENDER:
             hand.surrendered = True
+            _trace_player_action(
+                trace_collector,
+                round_number,
+                hand_id,
+                TraceEventType.PLAYER_SURRENDERED,
+                action,
+            )
             break
         if action is Action.SPLIT:
+            _trace_player_action(
+                trace_collector,
+                round_number,
+                hand_id,
+                TraceEventType.PLAYER_SPLIT,
+                action,
+            )
             player_hands[hand_index : hand_index + 1] = _split_hand(
                 hand,
                 shoe,
                 split_rules,
                 card_counter,
+                trace_collector,
+                round_number,
+                hand_index,
             )
             return True
         msg = f"unsupported action for round flow: {action}"
@@ -414,6 +597,9 @@ def _split_hand(
     shoe: RoundShoe,
     split_rules: SplitRules,
     card_counter: CardCounter | None,
+    trace_collector: TraceCollector | None,
+    round_number: int,
+    hand_index: int,
 ) -> list[Hand]:
     first_card, second_card = hand.cards
     split_aces = first_card.rank is second_card.rank and first_card.rank.value == "A"
@@ -434,8 +620,26 @@ def _split_hand(
         split_depth=depth,
         originated_from_split_aces=hand.originated_from_split_aces or split_aces,
     )
-    _draw_visible_card(shoe, first, card_counter)
-    _draw_visible_card(shoe, second, card_counter)
+    _draw_visible_card(
+        shoe,
+        first,
+        card_counter,
+        trace_collector,
+        round_number,
+        hand_id=f"player_{hand_index}",
+        recipient="player",
+        reason="split",
+    )
+    _draw_visible_card(
+        shoe,
+        second,
+        card_counter,
+        trace_collector,
+        round_number,
+        hand_id=f"player_{hand_index + 1}",
+        recipient="player",
+        reason="split",
+    )
 
     if split_aces and not split_rules.hit_split_aces:
         first.completed = True
@@ -457,7 +661,24 @@ def _choose_action(
     player: Hand,
     dealer_upcard: Card,
     legal_actions: frozenset[Action],
+    trace_collector: TraceCollector | None = None,
+    round_number: int = 1,
+    hand_id: str | None = None,
 ) -> Action:
+    legal_action_values: list[TraceValue] = [
+        action.value for action in sorted(legal_actions, key=lambda item: item.value)
+    ]
+    _trace(
+        trace_collector,
+        TraceEventType.STRATEGY_DECISION_REQUESTED,
+        round_number=round_number,
+        hand_id=hand_id,
+        details={
+            "hand_value": player.value,
+            "dealer_upcard": _card_token(dealer_upcard),
+            "legal_actions": legal_action_values,
+        },
+    )
     return player_strategy.choose_action(player, dealer_upcard, legal_actions)
 
 
@@ -477,11 +698,29 @@ def _play_visible_dealer_hand(
     shoe: RoundShoe,
     dealer_rules: DealerRules,
     card_counter: CardCounter | None,
+    trace_collector: TraceCollector | None,
+    round_number: int,
 ) -> Hand:
     while dealer.value < 17 or (
         dealer.value == 17 and dealer.is_soft and dealer_rules.hits_soft_17
     ):
-        _draw_visible_card(shoe, dealer, card_counter)
+        _draw_visible_card(
+            shoe,
+            dealer,
+            card_counter,
+            trace_collector,
+            round_number,
+            hand_id="dealer",
+            recipient="dealer",
+            reason="dealer_hit",
+        )
+        _trace(
+            trace_collector,
+            TraceEventType.DEALER_HIT,
+            round_number=round_number,
+            hand_id="dealer",
+            details={"hand_value": dealer.value},
+        )
 
     return dealer
 
@@ -495,6 +734,8 @@ def _complete_round(
     insurance_settlement: InsuranceSettlement | None,
     hole_card_rules: HoleCardRules,
     card_counter: CardCounter | None,
+    trace_collector: TraceCollector | None,
+    round_number: int,
     *,
     enhc_dealer_blackjack: bool = False,
 ) -> RoundResult:
@@ -514,11 +755,41 @@ def _complete_round(
         ),
         insurance_settlement=insurance_settlement,
     )
+    for index, settlement in enumerate(result.settlements):
+        _trace(
+            trace_collector,
+            TraceEventType.HAND_SETTLED,
+            round_number=round_number,
+            hand_id=f"player_{index}",
+            details={
+                "outcome": settlement.outcome.value,
+                "net_result": settlement.net_result,
+                "hand_value": result.player_hands[index].value,
+                "dealer_value": dealer.value,
+            },
+        )
+    if result.insurance_settlement is not None:
+        _trace(
+            trace_collector,
+            TraceEventType.INSURANCE_SETTLED,
+            round_number=round_number,
+            hand_id="player_0",
+            details={
+                "outcome": result.insurance_settlement.outcome.value,
+                "bet": result.insurance_settlement.bet,
+                "net_result": result.insurance_settlement.net_result,
+            },
+        )
 
     if shoe.needs_shuffle:
         shoe.reset()
         if card_counter is not None:
             card_counter.reset()
+        _trace(
+            trace_collector,
+            TraceEventType.SHOE_SHUFFLED,
+            round_number=round_number,
+        )
 
     return result
 
@@ -556,3 +827,45 @@ def _settle_player_hands(
         )
         for hand in player_hands
     ]
+
+
+def _trace_player_action(
+    trace_collector: TraceCollector | None,
+    round_number: int,
+    hand_id: str,
+    event_type: TraceEventType,
+    action: Action,
+    extra_details: dict[str, Decimal] | None = None,
+) -> None:
+    details: dict[str, TraceValue] = {"action": action.value}
+    if extra_details is not None:
+        details.update(extra_details)
+    _trace(
+        trace_collector,
+        event_type,
+        round_number=round_number,
+        hand_id=hand_id,
+        details=details,
+    )
+
+
+def _trace(
+    trace_collector: TraceCollector | None,
+    event_type: TraceEventType,
+    *,
+    round_number: int,
+    hand_id: str | None = None,
+    details: dict[str, TraceValue] | None = None,
+) -> None:
+    if trace_collector is None:
+        return
+    trace_collector.record(
+        event_type,
+        round_number=round_number,
+        hand_id=hand_id,
+        details=details,
+    )
+
+
+def _card_token(card: Card) -> str:
+    return card.rank.value

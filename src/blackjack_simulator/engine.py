@@ -26,6 +26,7 @@ from blackjack_simulator.strategies.insurance import (
     InsuranceStrategy,
     NeverInsuranceStrategy,
 )
+from blackjack_simulator.trace import TraceCollector, TraceEventType
 
 
 @dataclass(frozen=True, slots=True)
@@ -113,14 +114,30 @@ def run_simulation(
     card_counter: CardCounter | None = None,
     statistics_collector: StatisticsCollector | None = None,
     store_rounds: bool = True,
+    trace_collector: TraceCollector | None = None,
 ) -> SimulationResult:
     insurance_strategy = insurance_strategy or NeverInsuranceStrategy()
     betting = betting_strategy or FlatBettingStrategy(config.betting_amount)
     bankroll = config.initial_bankroll
     round_results: list[RoundResult] = []
 
-    for _ in range(config.rounds):
+    for round_number in range(1, config.rounds + 1):
         bet = betting.next_bet(bankroll)
+        if trace_collector is not None:
+            trace_collector.record(
+                TraceEventType.ROUND_STARTED,
+                round_number=round_number,
+                details={
+                    "bankroll_before": bankroll,
+                    "remaining_cards": _remaining_cards(shoe),
+                },
+            )
+            trace_collector.record(
+                TraceEventType.INITIAL_BET_PLACED,
+                round_number=round_number,
+                hand_id="player_0",
+                details={"amount": bet},
+            )
         result = play_round(
             shoe=shoe,
             dealer_rules=config.dealer_rules,
@@ -134,6 +151,8 @@ def run_simulation(
             insurance_strategy=insurance_strategy,
             hole_card_rules=config.hole_card_rules,
             card_counter=card_counter,
+            trace_collector=trace_collector,
+            round_number=round_number,
         )
         bankroll += result.net_result
         betting.update_after_round(outcome_from_net_result(result.net_result))
@@ -141,6 +160,16 @@ def run_simulation(
             statistics_collector.record_round(result)
         if store_rounds:
             round_results.append(result)
+        if trace_collector is not None:
+            trace_collector.record(
+                TraceEventType.ROUND_SETTLED,
+                round_number=round_number,
+                details={
+                    "net_result": result.net_result,
+                    "bankroll_after": bankroll,
+                    "hands": len(result.player_hands),
+                },
+            )
 
     return SimulationResult(
         rounds=round_results,
@@ -274,3 +303,7 @@ def _run_worker_simulation_job(job: _WorkerSimulationJob) -> WorkerSimulationRes
         final_bankroll=result.final_bankroll,
         statistics_collector=collector,
     )
+
+
+def _remaining_cards(shoe: RoundShoe) -> int | None:
+    return getattr(shoe, "remaining_cards", None)
