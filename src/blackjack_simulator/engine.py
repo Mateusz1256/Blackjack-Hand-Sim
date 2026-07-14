@@ -15,6 +15,8 @@ from blackjack_simulator.rules import (
     SplitRules,
     SurrenderRules,
 )
+from blackjack_simulator.statistics.collector import StatisticsCollector
+from blackjack_simulator.statistics.report import SimulationReport
 from blackjack_simulator.strategies.insurance import (
     InsuranceStrategy,
     NeverInsuranceStrategy,
@@ -51,6 +53,7 @@ class SimulationResult:
     rounds: list[RoundResult]
     initial_bankroll: Decimal
     final_bankroll: Decimal
+    statistics: SimulationReport | None = None
 
 
 def run_simulation(
@@ -61,6 +64,7 @@ def run_simulation(
     insurance_strategy: InsuranceStrategy | None = None,
     betting_strategy: BettingStrategy | None = None,
     card_counter: CardCounter | None = None,
+    statistics_collector: StatisticsCollector | None = None,
 ) -> SimulationResult:
     insurance_strategy = insurance_strategy or NeverInsuranceStrategy()
     betting = betting_strategy or FlatBettingStrategy(config.betting_amount)
@@ -85,10 +89,17 @@ def run_simulation(
         )
         bankroll += result.net_result
         betting.update_after_round(outcome_from_net_result(result.net_result))
+        if statistics_collector is not None:
+            statistics_collector.record_round(result)
         round_results.append(result)
 
     return SimulationResult(
         rounds=round_results,
         initial_bankroll=config.initial_bankroll,
         final_bankroll=bankroll,
+        statistics=(
+            statistics_collector.to_report()
+            if statistics_collector is not None
+            else None
+        ),
     )

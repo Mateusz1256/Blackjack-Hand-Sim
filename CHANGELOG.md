@@ -31,3 +31,5 @@ Versioning.
   D'Alembert, plus table limits and insufficient-bankroll handling.
 - Hi-Lo card counting with running/true count, reveal-timed round integration,
   count-based insurance, and true-count betting spread.
+- Streaming statistics collector with Welford variance, house edge, RTP,
+  drawdown, streaks, and JSON/CSV/console report output helpers.

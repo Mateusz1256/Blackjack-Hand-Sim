@@ -41,7 +41,8 @@ python -m pip install -e ".[dev]"
 
 At this stage the package exposes card, hand, shoe, dealer-rule, hole-card,
 double, split, surrender, insurance, basic strategy, basic round, settlement,
-flat/progressive betting, Hi-Lo counting, and simple simulation primitives.
+flat/progressive betting, Hi-Lo counting, streaming statistics, report output,
+and simple simulation primitives.
 
 ```python
 import random

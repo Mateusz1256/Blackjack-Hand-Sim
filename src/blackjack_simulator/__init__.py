@@ -19,6 +19,11 @@ from blackjack_simulator.engine import (
 )
 from blackjack_simulator.exceptions import InsufficientBankrollError
 from blackjack_simulator.hand import Hand
+from blackjack_simulator.output import (
+    render_console_report,
+    report_to_csv,
+    report_to_json,
+)
 from blackjack_simulator.rules import (
     DealerRules,
     DoubleRules,
@@ -31,6 +36,11 @@ from blackjack_simulator.rules import (
     SurrenderType,
 )
 from blackjack_simulator.shoe import Shoe
+from blackjack_simulator.statistics import (
+    RunningVariance,
+    SimulationReport,
+    StatisticsCollector,
+)
 from blackjack_simulator.strategies import (
     AlwaysInsuranceStrategy,
     BasicStrategy,
@@ -65,16 +75,22 @@ __all__ = [
     "NeverInsuranceStrategy",
     "ParoliBettingStrategy",
     "Rank",
+    "RunningVariance",
     "Shoe",
     "SimulationConfig",
+    "SimulationReport",
     "SimulationResult",
     "SplitRules",
+    "StatisticsCollector",
     "SurrenderRules",
     "SurrenderType",
     "TableLimits",
     "TrueCountSpreadBettingStrategy",
     "__version__",
     "basic_strategy_for_rules",
+    "render_console_report",
+    "report_to_csv",
+    "report_to_json",
     "run_simulation",
 ]
 

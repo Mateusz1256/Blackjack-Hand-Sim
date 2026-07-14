@@ -139,3 +139,13 @@ surrender, peek, ENHC, OBO, insurance, and even money.
 - Effect: insurance can be taken only when true count reaches a configured
   threshold. Betting spread chooses the initial round wager from true-count
   thresholds while still respecting table limits and bankroll checks.
+
+## Statistics and Reports
+
+- Fields: `StatisticsCollector`, `SimulationReport`
+- Values: streaming round aggregation
+- Default: no collector unless passed to `run_simulation`
+- Effect: statistics aggregate rounds without retaining every round inside the
+  collector. Metrics include Welford mean/variance, house edge against initial
+  bets and total action, RTP, max drawdown, and win/loss/push streaks. Reports
+  can be rendered as JSON, CSV, or plain console text.
