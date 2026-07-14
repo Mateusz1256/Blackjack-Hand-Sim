@@ -27,3 +27,5 @@ Versioning.
   and American dealer peek behavior.
 - European no-hole-card dealer flow with `all_bets` and `original_bet_only`
   settlement variants for dealer blackjack after player actions.
+- Progressive betting systems for Martingale, Paroli, Fibonacci, and
+  D'Alembert, plus table limits and insufficient-bankroll handling.

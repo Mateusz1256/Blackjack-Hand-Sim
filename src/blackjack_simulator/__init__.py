@@ -1,12 +1,21 @@
 """Blackjack simulation package."""
 
 from blackjack_simulator.actions import Action
+from blackjack_simulator.betting import (
+    DAlembertBettingStrategy,
+    FibonacciBettingStrategy,
+    FlatBettingStrategy,
+    MartingaleBettingStrategy,
+    ParoliBettingStrategy,
+    TableLimits,
+)
 from blackjack_simulator.cards import Card, Rank
 from blackjack_simulator.engine import (
     SimulationConfig,
     SimulationResult,
     run_simulation,
 )
+from blackjack_simulator.exceptions import InsufficientBankrollError
 from blackjack_simulator.hand import Hand
 from blackjack_simulator.rules import (
     DealerRules,
@@ -35,15 +44,21 @@ __all__ = [
     "BasicStrategy",
     "BasicStrategyProfile",
     "Card",
+    "DAlembertBettingStrategy",
     "DealerRules",
     "DoubleRules",
     "EnhcLossRule",
     "EvenMoneyInsuranceStrategy",
+    "FibonacciBettingStrategy",
+    "FlatBettingStrategy",
     "Hand",
     "HoleCardMode",
     "HoleCardRules",
+    "InsufficientBankrollError",
     "InsuranceRules",
+    "MartingaleBettingStrategy",
     "NeverInsuranceStrategy",
+    "ParoliBettingStrategy",
     "Rank",
     "Shoe",
     "SimulationConfig",
@@ -51,6 +66,7 @@ __all__ = [
     "SplitRules",
     "SurrenderRules",
     "SurrenderType",
+    "TableLimits",
     "__version__",
     "basic_strategy_for_rules",
     "run_simulation",

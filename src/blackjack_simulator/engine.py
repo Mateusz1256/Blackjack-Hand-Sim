@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 
 from blackjack_simulator.betting import FlatBettingStrategy
+from blackjack_simulator.betting.base import BettingStrategy, outcome_from_net_result
 from blackjack_simulator.round import PlayerStrategy, RoundResult, RoundShoe, play_round
 from blackjack_simulator.rules import (
     DealerRules,
@@ -57,9 +58,10 @@ def run_simulation(
     config: SimulationConfig,
     player_strategy: PlayerStrategy,
     insurance_strategy: InsuranceStrategy | None = None,
+    betting_strategy: BettingStrategy | None = None,
 ) -> SimulationResult:
     insurance_strategy = insurance_strategy or NeverInsuranceStrategy()
-    betting = FlatBettingStrategy(config.betting_amount)
+    betting = betting_strategy or FlatBettingStrategy(config.betting_amount)
     bankroll = config.initial_bankroll
     round_results: list[RoundResult] = []
 
@@ -79,6 +81,7 @@ def run_simulation(
             hole_card_rules=config.hole_card_rules,
         )
         bankroll += result.net_result
+        betting.update_after_round(outcome_from_net_result(result.net_result))
         round_results.append(result)
 
     return SimulationResult(

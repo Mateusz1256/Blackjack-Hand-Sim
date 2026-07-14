@@ -3,10 +3,17 @@
 from dataclasses import dataclass
 from decimal import Decimal
 
+from blackjack_simulator.betting.base import (
+    BettingOutcome,
+    TableLimits,
+    apply_limits,
+)
 
-@dataclass(frozen=True, slots=True)
+
+@dataclass(slots=True)
 class FlatBettingStrategy:
     amount: Decimal
+    table_limits: TableLimits | None = None
 
     def __post_init__(self) -> None:
         if self.amount <= 0:
@@ -14,8 +21,7 @@ class FlatBettingStrategy:
             raise ValueError(msg)
 
     def next_bet(self, bankroll: Decimal) -> Decimal:
-        if bankroll < self.amount:
-            msg = "bankroll is smaller than the flat betting amount"
-            raise ValueError(msg)
+        return apply_limits(self.amount, bankroll, self.table_limits)
 
-        return self.amount
+    def update_after_round(self, outcome: BettingOutcome) -> None:
+        del outcome

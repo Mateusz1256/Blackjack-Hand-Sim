@@ -105,3 +105,20 @@ surrender, peek, ENHC, OBO, insurance, and even money.
   `all_bets` loses current hand bets including double and split wagers.
   `original_bet_only` loses only one original wager for the round and returns
   additional wagers as zero-net settlements.
+
+## Betting Systems
+
+- Fields: betting strategy objects passed to `run_simulation`
+- Values: flat, Martingale, Paroli, Fibonacci, D'Alembert
+- Default: flat betting from `SimulationConfig.betting_amount`
+- Effect: the betting strategy selects the initial wager once per round and is
+  updated once after the round net result. Split hands do not update the betting
+  system separately.
+
+## Table Limits and Bankroll
+
+- Field: `TableLimits`
+- Values: positive minimum, maximum greater than or equal to minimum
+- Effect: requested bets are clamped to table minimum and maximum. If bankroll
+  is below table minimum or below an unclamped requested bet, the strategy raises
+  `InsufficientBankrollError`.
