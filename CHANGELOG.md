@@ -17,6 +17,9 @@ Versioning.
 - Engine audit command with PASS/WARNING/FAIL/SKIPPED checks and strict mode.
 - Configuration comparison service and CLI with baseline deltas plus JSON/CSV
   export.
+- Batch simulation service and CLI with deterministic session seeds,
+  final-bankroll percentiles, risk-of-ruin, and JSON/CSV export.
+- Validated built-in table-rule presets with metadata and YAML import/export.
 
 ## [1.0.0] - 2026-07-14
 

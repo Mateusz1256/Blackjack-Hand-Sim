@@ -140,6 +140,9 @@ blackjack-simulator trace configs/standard_6_deck_s17.yaml --event-type card_dea
 blackjack-simulator audit configs/standard_6_deck_s17.yaml --rounds 100
 blackjack-simulator audit configs/standard_6_deck_s17.yaml --rounds 10 --strict
 blackjack-simulator compare configs/standard_6_deck_s17.yaml configs/blackjack_6_to_5.yaml --rounds 10000
+blackjack-simulator batch configs/standard_6_deck_s17.yaml --sessions 100 --rounds-per-session 1000 --base-seed 42
+blackjack-simulator presets list
+blackjack-simulator presets export standard-6d-s17 standard-6d-s17.yaml
 blackjack-simulator run configs/validation_1m.yaml
 ```
 
@@ -149,6 +152,14 @@ Reports include streaming aggregates such as RTP, house edge, drawdown,
 streaks, and variance. `run_worker_simulations` can split simulations across
 deterministically seeded workers and merge their statistics without sharing
 mutable simulation state.
+
+Batch simulations run independent sessions from a deterministic base seed and
+report final-bankroll distribution, risk of ruin, profit/loss rates, drawdown
+percentiles, and per-session CSV/JSON output.
+
+Built-in presets provide validated generic table-rule configurations with
+metadata. They are read-only templates and avoid claims about specific casino
+tables; export one to YAML before editing it as a custom configuration.
 
 ## Tests
 

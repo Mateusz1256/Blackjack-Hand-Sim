@@ -6,10 +6,16 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from blackjack_simulator.audit import run_config_audit
+from blackjack_simulator.batch import BatchConfig, run_batch
 from blackjack_simulator.comparison import ComparisonMode, compare_configurations
 from blackjack_simulator.configuration import ConfigurationError, load_app_config
 from blackjack_simulator.engine import run_simulation, run_worker_simulations
 from blackjack_simulator.output.audit_output import render_audit_report
+from blackjack_simulator.output.batch_output import (
+    batch_to_csv,
+    batch_to_json,
+    render_batch_report,
+)
 from blackjack_simulator.output.comparison_output import (
     comparison_to_csv,
     comparison_to_json,
@@ -22,6 +28,13 @@ from blackjack_simulator.output.trace_output import (
     filter_trace_events,
     render_trace_report,
     trace_events_to_json,
+)
+from blackjack_simulator.presets import (
+    export_preset,
+    get_builtin_preset,
+    import_preset,
+    list_builtin_presets,
+    preset_to_yaml,
 )
 from blackjack_simulator.statistics.collector import StatisticsCollector
 from blackjack_simulator.trace import TraceCollector, TraceEventType
@@ -41,6 +54,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _audit(args)
         if args.command == "compare":
             return _compare(args)
+        if args.command == "batch":
+            return _batch(args)
+        if args.command == "presets":
+            return _presets(args)
     except ConfigurationError as exc:
         print(f"Configuration error: {exc}", file=sys.stderr)
         return 2
@@ -99,6 +116,31 @@ def _build_parser() -> ArgumentParser:
     )
     compare_parser.add_argument("--json-file", type=Path)
     compare_parser.add_argument("--csv-file", type=Path)
+
+    batch_parser = subparsers.add_parser("batch")
+    batch_parser.add_argument("config", type=Path)
+    batch_parser.add_argument("--sessions", type=int, required=True)
+    batch_parser.add_argument("--rounds-per-session", type=int, required=True)
+    batch_parser.add_argument("--base-seed", type=int)
+    batch_parser.add_argument("--json-file", type=Path)
+    batch_parser.add_argument("--csv-file", type=Path)
+
+    presets_parser = subparsers.add_parser("presets")
+    presets_subparsers = presets_parser.add_subparsers(
+        dest="presets_command",
+        required=True,
+    )
+    presets_subparsers.add_parser("list")
+
+    presets_show_parser = presets_subparsers.add_parser("show")
+    presets_show_parser.add_argument("preset_id")
+
+    presets_export_parser = presets_subparsers.add_parser("export")
+    presets_export_parser.add_argument("preset_id")
+    presets_export_parser.add_argument("path", type=Path)
+
+    presets_validate_parser = presets_subparsers.add_parser("validate")
+    presets_validate_parser.add_argument("path", type=Path)
 
     return parser
 
@@ -210,6 +252,73 @@ def _compare(args: Namespace) -> int:
         args.csv_file.write_text(comparison_to_csv(report), encoding="utf-8")
     print(render_comparison_report(report))
     return 0
+
+
+def _batch(args: Namespace) -> int:
+    app_config = load_app_config(args.config)
+    base_seed = (
+        args.base_seed if args.base_seed is not None else app_config.simulation.seed
+    )
+    try:
+        report = run_batch(
+            app_config,
+            BatchConfig(
+                sessions=args.sessions,
+                rounds_per_session=args.rounds_per_session,
+                base_seed=base_seed,
+            ),
+        )
+    except ValueError as exc:
+        print(f"Batch error: {exc}", file=sys.stderr)
+        return 2
+
+    if args.json_file is not None:
+        args.json_file.write_text(batch_to_json(report), encoding="utf-8")
+    if args.csv_file is not None:
+        args.csv_file.write_text(batch_to_csv(report), encoding="utf-8")
+    print(render_batch_report(report))
+    return 0
+
+
+def _presets(args: Namespace) -> int:
+    if args.presets_command == "list":
+        for preset in list_builtin_presets():
+            metadata = preset.metadata
+            print(
+                f"{metadata.id} | {metadata.name} | "
+                f"{metadata.category} | {', '.join(metadata.tags)}",
+            )
+        return 0
+
+    if args.presets_command == "show":
+        try:
+            preset = get_builtin_preset(args.preset_id)
+        except KeyError as exc:
+            print(f"Preset error: {exc}", file=sys.stderr)
+            return 2
+        print(preset_to_yaml(preset))
+        return 0
+
+    if args.presets_command == "export":
+        try:
+            preset = get_builtin_preset(args.preset_id)
+        except KeyError as exc:
+            print(f"Preset error: {exc}", file=sys.stderr)
+            return 2
+        export_preset(preset, args.path)
+        print(f"Preset exported to {args.path}")
+        return 0
+
+    if args.presets_command == "validate":
+        try:
+            preset = import_preset(args.path)
+        except ValueError as exc:
+            print(f"Preset error: {exc}", file=sys.stderr)
+            return 2
+        print(f"Preset is valid: {preset.metadata.id}")
+        return 0
+
+    return 2
 
 
 def _overrides(args: Namespace) -> dict[str, int]:

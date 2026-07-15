@@ -135,3 +135,49 @@ def test_cli_audit_strict_fails_on_warning(tmp_path: Path, capsys) -> None:  # t
     output = capsys.readouterr().out
     assert exit_code == 1
     assert "WARNING audit.sample_size" in output
+
+
+def test_cli_batch_smoke(tmp_path: Path, capsys) -> None:  # type: ignore[no-untyped-def]
+    config_path = write_config(tmp_path)
+    json_path = tmp_path / "batch.json"
+    csv_path = tmp_path / "batch.csv"
+
+    exit_code = main(
+        [
+            "batch",
+            str(config_path),
+            "--sessions",
+            "2",
+            "--rounds-per-session",
+            "3",
+            "--base-seed",
+            "42",
+            "--json-file",
+            str(json_path),
+            "--csv-file",
+            str(csv_path),
+        ],
+    )
+
+    output = capsys.readouterr().out
+    assert exit_code == 0
+    assert "Batch report" in output
+    assert "Risk of ruin" in output
+    assert json_path.exists()
+    assert csv_path.exists()
+
+
+def test_cli_presets_list_and_export(tmp_path: Path, capsys) -> None:  # type: ignore[no-untyped-def]
+    export_path = tmp_path / "standard.yaml"
+
+    list_exit_code = main(["presets", "list"])
+    list_output = capsys.readouterr().out
+    export_exit_code = main(
+        ["presets", "export", "standard-6d-s17", str(export_path)],
+    )
+    validate_exit_code = main(["presets", "validate", str(export_path)])
+
+    assert list_exit_code == 0
+    assert "standard-6d-s17" in list_output
+    assert export_exit_code == 0
+    assert validate_exit_code == 0
