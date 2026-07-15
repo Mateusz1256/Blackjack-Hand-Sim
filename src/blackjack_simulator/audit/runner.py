@@ -43,7 +43,7 @@ def _run_audited_simulation(app_config: AppConfig) -> _AuditedRun:
     result = run_simulation(
         shoe=shoe,
         config=app_config.engine_config,
-        player_strategy=app_config.create_playing_strategy(),
+        player_strategy=app_config.create_playing_strategy(shoe, card_counter),
         insurance_strategy=app_config.create_insurance_strategy(),
         betting_strategy=app_config.create_betting_strategy(shoe, card_counter),
         card_counter=card_counter,

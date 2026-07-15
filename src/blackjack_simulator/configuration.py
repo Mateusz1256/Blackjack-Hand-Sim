@@ -3,13 +3,13 @@
 from collections.abc import Callable
 from dataclasses import dataclass
 from decimal import Decimal
-from functools import partial
 from pathlib import Path
 from random import Random
 from typing import Any
 
 import yaml
 
+from blackjack_simulator.actions import Action
 from blackjack_simulator.betting import (
     DAlembertBettingStrategy,
     FibonacciBettingStrategy,
@@ -46,9 +46,13 @@ from blackjack_simulator.shoe import Shoe
 from blackjack_simulator.strategies import (
     AlwaysInsuranceStrategy,
     BasicStrategy,
+    DeviatingStrategy,
+    DeviationHandType,
     EvenMoneyInsuranceStrategy,
     NeverInsuranceStrategy,
+    StrategyDeviation,
     basic_strategy_for_rules,
+    get_builtin_deviations,
 )
 from blackjack_simulator.strategies.insurance import InsuranceStrategy
 
@@ -95,6 +99,34 @@ class CountingSettings:
     min_remaining_decks: Decimal = Decimal("0")
     initial_running_count: int | None = None
     wonging: dict[str, Any] | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class DeviationSettings:
+    enabled: bool
+    sets: tuple[str, ...] = ()
+    custom: tuple[StrategyDeviation, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class ConfiguredPlayingStrategyFactory:
+    dealer_rules: DealerRules
+    deviations: DeviationSettings
+
+    def __call__(
+        self,
+        shoe: Shoe,
+        card_counter: CardCounter | None,
+    ) -> BasicStrategy | DeviatingStrategy:
+        base_strategy = basic_strategy_for_rules(self.dealer_rules)
+        if not self.deviations.enabled:
+            return base_strategy
+        return DeviatingStrategy(
+            base_strategy=base_strategy,
+            deviations=_deviations_from_settings(self.deviations),
+            counter=card_counter,
+            remaining_cards_provider=shoe,
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -157,6 +189,7 @@ class AppConfig:
     output: OutputSettings
     betting: BettingSettings
     counting: CountingSettings
+    deviations: DeviationSettings
     insurance_strategy_type: str = "never"
 
     def create_shoe(self) -> Shoe:
@@ -167,11 +200,21 @@ class AppConfig:
             shuffle_after_each_round=self.shoe.shuffle_after_each_round,
         )
 
-    def create_playing_strategy(self) -> BasicStrategy:
-        return basic_strategy_for_rules(self.engine_config.dealer_rules)
+    def create_playing_strategy(
+        self,
+        shoe: Shoe | None = None,
+        card_counter: CardCounter | None = None,
+    ) -> BasicStrategy | DeviatingStrategy:
+        factory = self.create_playing_strategy_factory()
+        return factory(shoe or self.create_shoe(), card_counter)
 
-    def create_playing_strategy_factory(self) -> Callable[[], BasicStrategy]:
-        return partial(basic_strategy_for_rules, self.engine_config.dealer_rules)
+    def create_playing_strategy_factory(
+        self,
+    ) -> Callable[[Shoe, CardCounter | None], BasicStrategy | DeviatingStrategy]:
+        return ConfiguredPlayingStrategyFactory(
+            dealer_rules=self.engine_config.dealer_rules,
+            deviations=self.deviations,
+        )
 
     def create_insurance_strategy(self) -> InsuranceStrategy:
         if self.insurance_strategy_type == "always":
@@ -278,6 +321,7 @@ def parse_app_config(
     rules = _mapping(raw.get("rules", {}), "rules")
     output = _parse_output(raw.get("output", {}))
     counting = _parse_counting_settings(raw.get("counting", {}))
+    deviations = _parse_deviation_settings(raw.get("deviations", {}))
 
     betting = _parse_betting_settings(
         player.get("betting_strategy", {}),
@@ -320,6 +364,7 @@ def parse_app_config(
         output=output,
         betting=betting,
         counting=counting,
+        deviations=deviations,
         insurance_strategy_type=str(
             _mapping(
                 player.get("insurance_strategy", {}),
@@ -381,6 +426,106 @@ def _parse_counting_settings(raw: object) -> CountingSettings:
         ),
         wonging=_optional_mapping(data.get("wonging"), "counting.wonging"),
     )
+
+
+def _parse_deviation_settings(raw: object) -> DeviationSettings:
+    data = _mapping(raw, "deviations")
+    sets_raw = data.get("sets", ())
+    if sets_raw is None:
+        sets: tuple[str, ...] = ()
+    elif isinstance(sets_raw, (list, tuple)):
+        sets = tuple(str(item) for item in sets_raw)
+    else:
+        msg = "deviations.sets must be a list"
+        raise ConfigurationError(msg)
+
+    custom_raw = data.get("custom", ())
+    if custom_raw is None:
+        custom: tuple[StrategyDeviation, ...] = ()
+    elif isinstance(custom_raw, (list, tuple)):
+        custom = tuple(
+            _parse_strategy_deviation(item, index)
+            for index, item in enumerate(custom_raw)
+        )
+    else:
+        msg = "deviations.custom must be a list"
+        raise ConfigurationError(msg)
+
+    try:
+        for set_name in sets:
+            get_builtin_deviations(set_name)
+    except ValueError as exc:
+        raise ConfigurationError(str(exc)) from exc
+
+    return DeviationSettings(
+        enabled=bool(data.get("enabled", False)),
+        sets=sets,
+        custom=custom,
+    )
+
+
+def _deviations_from_settings(
+    settings: DeviationSettings,
+) -> tuple[StrategyDeviation, ...]:
+    deviations: list[StrategyDeviation] = []
+    for set_name in settings.sets:
+        deviations.extend(get_builtin_deviations(set_name))
+    deviations.extend(settings.custom)
+    return tuple(deviations)
+
+
+def _parse_strategy_deviation(
+    raw: object,
+    index: int,
+) -> StrategyDeviation:
+    data = _mapping(raw, f"deviations.custom[{index}]")
+    try:
+        return StrategyDeviation(
+            id=str(data.get("id", f"custom-{index}")),
+            hand_type=_parse_deviation_hand_type(
+                data.get("hand_type", data.get("type", "hard")),
+            ),
+            player_total=(
+                None
+                if data.get("player_total") is None
+                else _int(data.get("player_total"), "deviations.custom.player_total")
+            ),
+            dealer_upcard=_parse_dealer_upcard(data.get("dealer_upcard")),
+            true_count_min=(
+                None
+                if data.get("true_count_min") is None
+                else _decimal(
+                    data.get("true_count_min"),
+                    "deviations.custom.true_count_min",
+                )
+            ),
+            true_count_max=(
+                None
+                if data.get("true_count_max") is None
+                else _decimal(
+                    data.get("true_count_max"),
+                    "deviations.custom.true_count_max",
+                )
+            ),
+            action=Action(str(data.get("action"))),
+            priority=_int(data.get("priority", 0), "deviations.custom.priority"),
+        )
+    except ValueError as exc:
+        msg = f"invalid deviation at index {index}: {exc}"
+        raise ConfigurationError(msg) from exc
+
+
+def _parse_deviation_hand_type(raw: object) -> DeviationHandType:
+    return DeviationHandType(str(raw).strip().lower().replace("-", "_"))
+
+
+def _parse_dealer_upcard(raw: object) -> int:
+    value = str(raw).strip().lower()
+    if value in {"a", "ace"}:
+        return 11
+    if value in {"t", "ten", "j", "jack", "q", "queen", "k", "king"}:
+        return 10
+    return _int(raw, "deviations.custom.dealer_upcard")
 
 
 def _parse_true_count_rounding(raw: object) -> TrueCountRounding:

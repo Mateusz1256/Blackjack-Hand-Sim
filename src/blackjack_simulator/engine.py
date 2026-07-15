@@ -98,7 +98,7 @@ class _WorkerSimulationJob:
     seed: int
     config: SimulationConfig
     shoe_config: WorkerShoeConfig
-    player_strategy_factory: Callable[[], PlayerStrategy]
+    player_strategy_factory: Callable[[Shoe, CardCounter | None], PlayerStrategy]
     insurance_strategy_factory: Callable[[], InsuranceStrategy]
     betting_strategy_factory: Callable[[Shoe, CardCounter | None], BettingStrategy]
     card_counter_factory: Callable[[], CardCounter] | None
@@ -213,7 +213,7 @@ def run_worker_simulations(
     shoe_config: WorkerShoeConfig,
     top_level_seed: int,
     worker_count: int,
-    player_strategy_factory: Callable[[], PlayerStrategy],
+    player_strategy_factory: Callable[[Shoe, CardCounter | None], PlayerStrategy],
     insurance_strategy_factory: Callable[
         [], InsuranceStrategy
     ] = NeverInsuranceStrategy,
@@ -289,7 +289,7 @@ def _run_worker_simulation_job(job: _WorkerSimulationJob) -> WorkerSimulationRes
     result = run_simulation(
         shoe=shoe,
         config=job.config,
-        player_strategy=job.player_strategy_factory(),
+        player_strategy=job.player_strategy_factory(shoe, card_counter),
         insurance_strategy=job.insurance_strategy_factory(),
         betting_strategy=job.betting_strategy_factory(shoe, card_counter),
         card_counter=card_counter,

@@ -141,6 +141,24 @@ Supported counting systems are `hi_lo`, `ko`, `hi_opt_i`, `hi_opt_ii`, and
 `nearest`; `min_remaining_decks` prevents extreme division near the end of a
 shoe.
 
+Count-based deviations can wrap basic strategy:
+
+```yaml
+deviations:
+  enabled: true
+  sets:
+    - illustrious_18
+    - fab_4
+  custom:
+    - id: stand-16-vs-10
+      hand_type: hard
+      player_total: 16
+      dealer_upcard: 10
+      true_count_min: 0
+      action: stand
+      priority: 100
+```
+
 ## CLI
 
 ```powershell

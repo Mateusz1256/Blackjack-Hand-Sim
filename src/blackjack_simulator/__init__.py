@@ -58,8 +58,11 @@ from blackjack_simulator.strategies import (
     BasicStrategy,
     BasicStrategyProfile,
     CountBasedInsuranceStrategy,
+    DeviatingStrategy,
+    DeviationHandType,
     EvenMoneyInsuranceStrategy,
     NeverInsuranceStrategy,
+    StrategyDeviation,
     basic_strategy_for_rules,
 )
 from blackjack_simulator.trace import TraceCollector, TraceEvent, TraceEventType
@@ -75,6 +78,8 @@ __all__ = [
     "CountingSystem",
     "DAlembertBettingStrategy",
     "DealerRules",
+    "DeviatingStrategy",
+    "DeviationHandType",
     "DoubleRules",
     "EnhcLossRule",
     "EvenMoneyInsuranceStrategy",
@@ -98,6 +103,7 @@ __all__ = [
     "SimulationResult",
     "SplitRules",
     "StatisticsCollector",
+    "StrategyDeviation",
     "SurrenderRules",
     "SurrenderType",
     "TableLimits",

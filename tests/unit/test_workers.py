@@ -1,5 +1,4 @@
 from decimal import Decimal
-from functools import partial
 
 from blackjack_simulator.actions import Action
 from blackjack_simulator.cards import Card, Rank
@@ -97,7 +96,9 @@ def test_worker_simulations_are_deterministic_and_aggregate_rounds() -> None:
         dealer_rules=DealerRules(),
     )
     shoe_config = WorkerShoeConfig(decks=1, penetration=0.75)
-    strategy_factory = partial(FixedActionStrategy, Action.STAND)
+
+    def strategy_factory(*_args: object) -> FixedActionStrategy:
+        return FixedActionStrategy(Action.STAND)
 
     first = run_worker_simulations(
         config=config,

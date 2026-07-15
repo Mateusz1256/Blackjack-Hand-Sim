@@ -171,6 +171,37 @@ counting:
     assert card_counter.running_count == -4
 
 
+def test_parse_config_creates_deviating_strategy() -> None:
+    text = (
+        valid_config_text()
+        + """
+counting:
+  enabled: true
+deviations:
+  enabled: true
+  sets:
+    - illustrious_18
+  custom:
+    - id: stand-12-vs-4
+      hand_type: hard
+      player_total: 12
+      dealer_upcard: 4
+      true_count_min: 1
+      action: stand
+      priority: 200
+"""
+    )
+    config = parse_app_config(text)
+    shoe = config.create_shoe()
+    card_counter = config.create_card_counter()
+    strategy = config.create_playing_strategy(shoe, card_counter)
+
+    assert config.deviations.enabled is True
+    assert config.deviations.sets == ("illustrious_18",)
+    assert len(config.deviations.custom) == 1
+    assert strategy.__class__.__name__ == "DeviatingStrategy"
+
+
 def test_invalid_config_raises_clear_error() -> None:
     with pytest.raises(ConfigurationError, match=r"simulation\.rounds"):
         parse_app_config("simulation:\n  rounds: 0\n")

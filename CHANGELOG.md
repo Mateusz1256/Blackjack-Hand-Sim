@@ -23,6 +23,8 @@ Versioning.
 - Advanced counting systems for KO, Hi-Opt I, Hi-Opt II, and Omega II with
   configurable true-count rounding, minimum deck denominator, and initial
   running count.
+- Count-based basic-strategy deviations with built-in Illustrious 18/Fab 4
+  sets, custom YAML rules, priority conflict checks, and legal-action fallback.
 
 ## [1.0.0] - 2026-07-14
 
