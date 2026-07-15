@@ -20,8 +20,12 @@ from blackjack_simulator.betting import (
     TrueCountSpreadBettingStrategy,
 )
 from blackjack_simulator.betting.base import BettingStrategy
-from blackjack_simulator.counting import HiLoCounter
 from blackjack_simulator.counting.base import CardCounter
+from blackjack_simulator.counting.system import (
+    ConfigurableCardCounter,
+    TrueCountRounding,
+    get_counting_system,
+)
 from blackjack_simulator.engine import (
     SimulationConfig,
     WorkerShoeConfig,
@@ -84,6 +88,16 @@ class BettingSettings:
 
 
 @dataclass(frozen=True, slots=True)
+class CountingSettings:
+    enabled: bool
+    system: str = "hi_lo"
+    true_count_rounding: TrueCountRounding = TrueCountRounding.NONE
+    min_remaining_decks: Decimal = Decimal("0")
+    initial_running_count: int | None = None
+    wonging: dict[str, Any] | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class ConfiguredBettingStrategyFactory:
     settings: BettingSettings
 
@@ -142,6 +156,7 @@ class AppConfig:
     engine_config: SimulationConfig
     output: OutputSettings
     betting: BettingSettings
+    counting: CountingSettings
     insurance_strategy_type: str = "never"
 
     def create_shoe(self) -> Shoe:
@@ -176,13 +191,28 @@ class AppConfig:
         raise ConfigurationError(msg)
 
     def create_card_counter(self) -> CardCounter | None:
-        if self.betting.strategy_type == "true_count_spread":
-            return HiLoCounter()
+        if self.counting.enabled or self.betting.strategy_type == "true_count_spread":
+            return ConfigurableCardCounter(
+                system=get_counting_system(self.counting.system),
+                initial_running_count=self.counting.initial_running_count,
+                true_count_rounding=self.counting.true_count_rounding,
+                min_remaining_decks=self.counting.min_remaining_decks,
+            )
         return None
 
     def create_card_counter_factory(self) -> Callable[[], CardCounter] | None:
-        if self.betting.strategy_type == "true_count_spread":
-            return HiLoCounter
+        if self.counting.enabled or self.betting.strategy_type == "true_count_spread":
+            settings = self.counting
+
+            def factory() -> CardCounter:
+                return ConfigurableCardCounter(
+                    system=get_counting_system(settings.system),
+                    initial_running_count=settings.initial_running_count,
+                    true_count_rounding=settings.true_count_rounding,
+                    min_remaining_decks=settings.min_remaining_decks,
+                )
+
+            return factory
         return None
 
     def create_betting_strategy(
@@ -247,6 +277,7 @@ def parse_app_config(
     player = _mapping(raw.get("player", {}), "player")
     rules = _mapping(raw.get("rules", {}), "rules")
     output = _parse_output(raw.get("output", {}))
+    counting = _parse_counting_settings(raw.get("counting", {}))
 
     betting = _parse_betting_settings(
         player.get("betting_strategy", {}),
@@ -288,6 +319,7 @@ def parse_app_config(
         engine_config=engine_config,
         output=output,
         betting=betting,
+        counting=counting,
         insurance_strategy_type=str(
             _mapping(
                 player.get("insurance_strategy", {}),
@@ -319,6 +351,45 @@ def _parse_output(raw: object) -> OutputSettings:
         json_file=_optional_str(data.get("json_file")),
         csv_file=_optional_str(data.get("csv_file")),
     )
+
+
+def _parse_counting_settings(raw: object) -> CountingSettings:
+    data = _mapping(raw, "counting")
+    system = _normalize_counting_system(str(data.get("system", "hi_lo")))
+    try:
+        get_counting_system(system)
+    except ValueError as exc:
+        raise ConfigurationError(str(exc)) from exc
+
+    return CountingSettings(
+        enabled=bool(data.get("enabled", False)),
+        system=system,
+        true_count_rounding=_parse_true_count_rounding(
+            data.get("true_count_rounding", TrueCountRounding.NONE.value),
+        ),
+        min_remaining_decks=_non_negative_decimal(
+            data.get("min_remaining_decks", "0"),
+            "counting.min_remaining_decks",
+        ),
+        initial_running_count=(
+            None
+            if data.get("initial_running_count") is None
+            else _int(
+                data.get("initial_running_count"),
+                "counting.initial_running_count",
+            )
+        ),
+        wonging=_optional_mapping(data.get("wonging"), "counting.wonging"),
+    )
+
+
+def _parse_true_count_rounding(raw: object) -> TrueCountRounding:
+    normalized = str(raw).strip().lower().replace("-", "_").replace(" ", "_")
+    try:
+        return TrueCountRounding(normalized)
+    except ValueError as exc:
+        msg = f"unsupported counting.true_count_rounding: {raw}"
+        raise ConfigurationError(msg) from exc
 
 
 def _parse_betting_settings(raw: object, bankroll: dict[str, Any]) -> BettingSettings:
@@ -400,6 +471,22 @@ def _normalize_betting_type(raw: str) -> str:
         "d'alembert": "dalembert",
         "true_count": "true_count_spread",
         "count_spread": "true_count_spread",
+    }
+    return aliases.get(normalized, normalized)
+
+
+def _normalize_counting_system(raw: str) -> str:
+    normalized = raw.strip().lower().replace("-", "_").replace(" ", "_")
+    aliases = {
+        "hilo": "hi_lo",
+        "hiopt_i": "hi_opt_i",
+        "hiopt_1": "hi_opt_i",
+        "hi_opt_1": "hi_opt_i",
+        "hiopt_ii": "hi_opt_ii",
+        "hiopt_2": "hi_opt_ii",
+        "hi_opt_2": "hi_opt_ii",
+        "omega2": "omega_ii",
+        "omega_2": "omega_ii",
     }
     return aliases.get(normalized, normalized)
 
@@ -516,6 +603,14 @@ def _decimal(value: object, field_name: str) -> Decimal:
         raise ConfigurationError(msg) from exc
 
 
+def _non_negative_decimal(value: object, field_name: str) -> Decimal:
+    parsed = _decimal(value, field_name)
+    if parsed < 0:
+        msg = f"{field_name} must not be negative"
+        raise ConfigurationError(msg)
+    return parsed
+
+
 def _float_between(
     value: object,
     field_name: str,
@@ -544,3 +639,9 @@ def _optional_str(value: object) -> str | None:
     if value is None:
         return None
     return str(value)
+
+
+def _optional_mapping(value: object, field_name: str) -> dict[str, Any] | None:
+    if value is None:
+        return None
+    return _mapping(value, field_name)

@@ -12,6 +12,12 @@ from blackjack_simulator.betting import (
 )
 from blackjack_simulator.cards import Card, Rank
 from blackjack_simulator.counting import HiLoCounter
+from blackjack_simulator.counting.system import (
+    ConfigurableCardCounter,
+    CountingSystem,
+    TrueCountRounding,
+    get_counting_system,
+)
 from blackjack_simulator.engine import (
     FlatBettingStrategyFactory,
     SimulationConfig,
@@ -64,7 +70,9 @@ __all__ = [
     "BasicStrategy",
     "BasicStrategyProfile",
     "Card",
+    "ConfigurableCardCounter",
     "CountBasedInsuranceStrategy",
+    "CountingSystem",
     "DAlembertBettingStrategy",
     "DealerRules",
     "DoubleRules",
@@ -96,12 +104,14 @@ __all__ = [
     "TraceCollector",
     "TraceEvent",
     "TraceEventType",
+    "TrueCountRounding",
     "TrueCountSpreadBettingStrategy",
     "WorkerShoeConfig",
     "WorkerSimulationResult",
     "__version__",
     "basic_strategy_for_rules",
     "derive_worker_seed",
+    "get_counting_system",
     "render_console_report",
     "report_to_csv",
     "report_to_json",

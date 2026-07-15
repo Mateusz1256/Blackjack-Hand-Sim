@@ -6,6 +6,13 @@ simulation:
 bankroll:
   initial: 1000
 
+counting:
+  enabled: true
+  system: hi_lo
+  true_count_rounding: none
+  min_remaining_decks: 0
+  initial_running_count: 0
+
 rules:
   decks: 6
   penetration: 0.75

@@ -119,6 +119,13 @@ table_limits:
 For true-count betting:
 
 ```yaml
+counting:
+  enabled: true
+  system: hi_lo
+  true_count_rounding: floor
+  min_remaining_decks: 1
+  initial_running_count: 0
+
 player:
   betting_strategy:
     type: true_count_spread
@@ -128,6 +135,11 @@ player:
       2: 2
       4: 4
 ```
+
+Supported counting systems are `hi_lo`, `ko`, `hi_opt_i`, `hi_opt_ii`, and
+`omega_ii`. True-count rounding can be `none`, `floor`, `truncate`, or
+`nearest`; `min_remaining_decks` prevents extreme division near the end of a
+shoe.
 
 ## CLI
 

@@ -20,6 +20,9 @@ Versioning.
 - Batch simulation service and CLI with deterministic session seeds,
   final-bankroll percentiles, risk-of-ruin, and JSON/CSV export.
 - Validated built-in table-rule presets with metadata and YAML import/export.
+- Advanced counting systems for KO, Hi-Opt I, Hi-Opt II, and Omega II with
+  configurable true-count rounding, minimum deck denominator, and initial
+  running count.
 
 ## [1.0.0] - 2026-07-14
 

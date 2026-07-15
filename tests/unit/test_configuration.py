@@ -15,6 +15,10 @@ from blackjack_simulator.configuration import (
     load_app_config,
     parse_app_config,
 )
+from blackjack_simulator.counting.system import (
+    ConfigurableCardCounter,
+    TrueCountRounding,
+)
 from blackjack_simulator.rules import HoleCardMode, SurrenderType
 
 
@@ -139,6 +143,32 @@ def test_parse_config_creates_true_count_spread_betting_strategy() -> None:
     assert card_counter is not None
     assert isinstance(strategy, TrueCountSpreadBettingStrategy)
     assert strategy.next_bet(Decimal("100")) == Decimal("10")
+
+
+def test_parse_config_creates_configured_card_counter() -> None:
+    text = (
+        valid_config_text()
+        + """
+counting:
+  enabled: true
+  system: omega_ii
+  true_count_rounding: floor
+  min_remaining_decks: 1
+  initial_running_count: -4
+  wonging:
+    enter_at_true_count: 1
+"""
+    )
+    config = parse_app_config(text)
+    card_counter = config.create_card_counter()
+
+    assert config.counting.enabled is True
+    assert config.counting.system == "omega_ii"
+    assert config.counting.true_count_rounding is TrueCountRounding.FLOOR
+    assert config.counting.min_remaining_decks == Decimal("1")
+    assert isinstance(card_counter, ConfigurableCardCounter)
+    assert card_counter.system.name == "omega_ii"
+    assert card_counter.running_count == -4
 
 
 def test_invalid_config_raises_clear_error() -> None:

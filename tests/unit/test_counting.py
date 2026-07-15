@@ -4,6 +4,11 @@ from blackjack_simulator.actions import Action
 from blackjack_simulator.betting.count_spread import TrueCountSpreadBettingStrategy
 from blackjack_simulator.cards import Card, Rank
 from blackjack_simulator.counting.hi_lo import HiLoCounter
+from blackjack_simulator.counting.system import (
+    ConfigurableCardCounter,
+    TrueCountRounding,
+    get_counting_system,
+)
 from blackjack_simulator.round import FixedActionStrategy, play_round
 from blackjack_simulator.rules import DealerRules, InsuranceRules
 from blackjack_simulator.strategies.insurance import CountBasedInsuranceStrategy
@@ -38,12 +43,75 @@ def test_hi_lo_count_values_by_rank() -> None:
     assert counter.running_count == 0
 
 
+def test_supported_counting_system_rank_values() -> None:
+    expectations = {
+        "hi_lo": {Rank.TWO: 1, Rank.SEVEN: 0, Rank.TEN: -1, Rank.ACE: -1},
+        "ko": {Rank.TWO: 1, Rank.SEVEN: 1, Rank.TEN: -1, Rank.ACE: -1},
+        "hi_opt_i": {Rank.TWO: 0, Rank.FIVE: 1, Rank.TEN: -1, Rank.ACE: 0},
+        "hi_opt_ii": {Rank.FOUR: 2, Rank.SEVEN: 1, Rank.TEN: -2, Rank.ACE: 0},
+        "omega_ii": {Rank.FIVE: 2, Rank.NINE: -1, Rank.TEN: -2, Rank.ACE: 0},
+    }
+
+    for system_name, values in expectations.items():
+        system = get_counting_system(system_name)
+        for rank, expected_value in values.items():
+            assert system.value_for(rank) == expected_value
+
+
 def test_true_count_uses_remaining_decks() -> None:
     counter = HiLoCounter()
     for _ in range(6):
         counter.observe(Card(Rank.FIVE))
 
     assert counter.true_count(remaining_cards=156) == Decimal("2")
+
+
+def test_true_count_rounding_modes() -> None:
+    counter = ConfigurableCardCounter(
+        system=get_counting_system("hi_lo"),
+        true_count_rounding=TrueCountRounding.NONE,
+    )
+    for _ in range(5):
+        counter.observe(Card(Rank.FIVE))
+
+    assert counter.true_count(remaining_cards=156) == Decimal(
+        "1.666666666666666666666666667",
+    )
+
+    counter.true_count_rounding = TrueCountRounding.FLOOR
+    assert counter.true_count(remaining_cards=156) == Decimal("1")
+
+    counter.true_count_rounding = TrueCountRounding.TRUNCATE
+    assert counter.true_count(remaining_cards=156) == Decimal("1")
+
+    counter.true_count_rounding = TrueCountRounding.NEAREST
+    assert counter.true_count(remaining_cards=156) == Decimal("2")
+
+
+def test_minimum_remaining_decks_denominator() -> None:
+    counter = ConfigurableCardCounter(
+        system=get_counting_system("hi_lo"),
+        min_remaining_decks=Decimal("1"),
+    )
+    for _ in range(4):
+        counter.observe(Card(Rank.FIVE))
+
+    assert counter.true_count(remaining_cards=26) == Decimal("4")
+
+
+def test_initial_running_count_applies_to_reset() -> None:
+    counter = ConfigurableCardCounter(
+        system=get_counting_system("ko"),
+        initial_running_count=-20,
+    )
+    counter.observe(Card(Rank.FIVE))
+
+    assert counter.running_count == -19
+
+    counter.reset()
+
+    assert counter.running_count == -20
+    assert counter.cards_seen == 0
 
 
 def test_count_resets_explicitly() -> None:
