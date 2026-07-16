@@ -4,10 +4,16 @@ import { ChangeEvent, FormEvent, ReactNode, useMemo, useState } from "react";
 import {
   BETTING_STRATEGIES,
   BettingStrategyType,
+  changedConfigurationToJson,
+  changedConfigurationToYaml,
   buildBettingPreview,
   buildWarnings,
+  configurationToJson,
   configurationToYaml,
   defaultConfigurationState,
+  diffConfigurationStates,
+  importConfigurationText,
+  ImportPreview,
   validateConfigurationForm
 } from "./configurationModel";
 import { validateSimulationConfig, ValidationResponse } from "../../services/apiClient";
@@ -22,11 +28,34 @@ export function ConfigurationBuilderPage() {
   const [backendResult, setBackendResult] = useState<ValidationResponse | null>(null);
   const [backendError, setBackendError] = useState<string | null>(null);
   const [isValidating, setIsValidating] = useState(false);
+  const [importText, setImportText] = useState("");
+  const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
+  const [exportFormat, setExportFormat] = useState<"yaml" | "json">("yaml");
+  const [exportMode, setExportMode] = useState<"full" | "changed">("full");
 
   const yaml = useMemo(() => configurationToYaml(form), [form]);
+  const json = useMemo(() => configurationToJson(form), [form]);
+  const changedYaml = useMemo(() => changedConfigurationToYaml(form), [form]);
+  const changedJson = useMemo(() => changedConfigurationToJson(form), [form]);
   const localIssues = useMemo(() => validateConfigurationForm(form), [form]);
   const warnings = useMemo(() => buildWarnings(form), [form]);
   const bettingPreview = useMemo(() => buildBettingPreview(form), [form]);
+  const importIssues = useMemo(
+    () => (importPreview?.state ? validateConfigurationForm(importPreview.state) : []),
+    [importPreview]
+  );
+  const importDiff = useMemo(
+    () => (importPreview?.state ? diffConfigurationStates(form, importPreview.state) : []),
+    [form, importPreview]
+  );
+  const exportText =
+    exportMode === "full"
+      ? exportFormat === "yaml"
+        ? yaml
+        : json
+      : exportFormat === "yaml"
+        ? changedYaml
+        : changedJson;
 
   const update = <Section extends keyof typeof form, Field extends keyof (typeof form)[Section]>(
     section: Section,
@@ -87,6 +116,29 @@ export function ConfigurationBuilderPage() {
     } finally {
       setIsValidating(false);
     }
+  };
+
+  const previewImport = () => {
+    setImportPreview(importConfigurationText(importText));
+  };
+
+  const applyImport = () => {
+    if (!importPreview?.state || importPreview.errors.length > 0 || importIssues.length > 0) {
+      return;
+    }
+    setForm(importPreview.state);
+    setBackendResult(null);
+    setBackendError(null);
+  };
+
+  const importFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+    const text = await file.text();
+    setImportText(text);
+    setImportPreview(importConfigurationText(text));
   };
 
   return (
@@ -475,6 +527,58 @@ export function ConfigurationBuilderPage() {
       </div>
 
       <aside className="builder-sidebar">
+        <section className="panel import-panel">
+          <h2>Import</h2>
+          <label className="field field-wide">
+            <span>Pasted config</span>
+            <textarea
+              value={importText}
+              onChange={(event) => setImportText(event.target.value)}
+              rows={8}
+            />
+          </label>
+          <label className="file-field">
+            <input
+              type="file"
+              accept=".yaml,.yml,.json,application/json,text/yaml,text/plain"
+              onChange={importFile}
+            />
+            <span>Import file</span>
+          </label>
+          <div className="button-row">
+            <button className="secondary-button" type="button" onClick={previewImport}>
+              Preview
+            </button>
+            <button
+              className="primary-button"
+              type="button"
+              disabled={!importPreview?.state || importPreview.errors.length > 0 || importIssues.length > 0}
+              onClick={applyImport}
+            >
+              Apply import
+            </button>
+          </div>
+          {importPreview && (
+            <ImportSummary
+              preview={importPreview}
+              issues={importIssues}
+              diffCount={importDiff.length}
+            />
+          )}
+          {importDiff.length > 0 && (
+            <ol className="diff-list" aria-label="Import diff">
+              {importDiff.slice(0, 8).map((entry) => (
+                <li key={entry.path}>
+                  <strong>{entry.path}</strong>
+                  <span>
+                    {formatValue(entry.before)} {"->"} {formatValue(entry.after)}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </section>
+
         <section className="panel">
           <div className="panel-heading">
             <h2>Validation</h2>
@@ -533,12 +637,90 @@ export function ConfigurationBuilderPage() {
         </section>
 
         <section className="panel yaml-panel">
-          <h2>Generated YAML</h2>
-          <pre>{yaml}</pre>
+          <h2>Export</h2>
+          <div className="segmented-row">
+            <label>
+              <span>Format</span>
+              <select
+                value={exportFormat}
+                onChange={(event) => setExportFormat(event.target.value as "yaml" | "json")}
+              >
+                <option value="yaml">YAML</option>
+                <option value="json">JSON</option>
+              </select>
+            </label>
+            <label>
+              <span>Scope</span>
+              <select
+                value={exportMode}
+                onChange={(event) => setExportMode(event.target.value as "full" | "changed")}
+              >
+                <option value="full">Full</option>
+                <option value="changed">Changed only</option>
+              </select>
+            </label>
+          </div>
+          <pre>{exportText}</pre>
         </section>
       </aside>
     </form>
   );
+}
+
+function ImportSummary({
+  preview,
+  issues,
+  diffCount
+}: {
+  preview: ImportPreview;
+  issues: { message: string }[];
+  diffCount: number;
+}) {
+  return (
+    <div className="import-summary">
+      {preview.migrationMessages.length > 0 && (
+        <ul className="issue-list">
+          {preview.migrationMessages.map((message) => (
+            <li key={message}>{message}</li>
+          ))}
+        </ul>
+      )}
+      {preview.errors.length > 0 && (
+        <ul className="issue-list" aria-label="Import errors">
+          {preview.errors.map((error) => (
+            <li key={error}>{error}</li>
+          ))}
+        </ul>
+      )}
+      {preview.unknownFields.length > 0 && (
+        <ul className="issue-list" aria-label="Unknown import fields">
+          {preview.unknownFields.map((field) => (
+            <li key={field}>Unknown field: {field}</li>
+          ))}
+        </ul>
+      )}
+      {issues.length > 0 && (
+        <ul className="issue-list" aria-label="Imported validation issues">
+          {issues.map((issue) => (
+            <li key={issue.message}>{issue.message}</li>
+          ))}
+        </ul>
+      )}
+      {preview.state && preview.errors.length === 0 && issues.length === 0 && (
+        <p className="muted">Import preview is valid. {diffCount} changes detected.</p>
+      )}
+    </div>
+  );
+}
+
+function formatValue(value: unknown): string {
+  if (value === undefined) {
+    return "unset";
+  }
+  if (typeof value === "object") {
+    return JSON.stringify(value);
+  }
+  return String(value);
 }
 
 function Section({ title, children }: SectionProps) {

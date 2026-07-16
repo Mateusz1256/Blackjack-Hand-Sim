@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -70,5 +70,32 @@ describe("ConfigurationBuilderPage", () => {
     const request = vi.mocked(fetch).mock.calls[0][1] as RequestInit;
     expect(String(request.body)).toContain("simulation:");
     expect(String(request.body)).toContain("blackjack_payout: 1.5");
+  });
+
+  it("previews, applies, and exports imported configuration", async () => {
+    const user = userEvent.setup();
+    render(<ConfigurationBuilderPage />);
+
+    fireEvent.change(screen.getByLabelText("Pasted config"), {
+      target: {
+        value: `schema_version: 1
+simulation:
+  rounds: 42
+`
+      }
+    });
+    await user.click(screen.getByRole("button", { name: "Preview" }));
+
+    expect(screen.getByText("Import preview is valid. 1 changes detected.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Import diff")).toHaveTextContent("simulation.rounds");
+
+    await user.click(screen.getByRole("button", { name: "Apply import" }));
+
+    expect(screen.getByLabelText("Rounds")).toHaveValue(42);
+
+    await user.selectOptions(screen.getByLabelText("Format"), "json");
+    await user.selectOptions(screen.getByLabelText("Scope"), "changed");
+
+    expect(screen.getByText(/"rounds": 42/)).toBeInTheDocument();
   });
 });

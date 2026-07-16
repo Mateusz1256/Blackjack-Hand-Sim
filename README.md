@@ -242,6 +242,9 @@ Set `VITE_API_BASE_URL` when the API is not available through the default
 The configuration builder is available at `/configuration`. It covers engine
 configuration fields, dynamic betting-strategy options, warning summaries,
 generated YAML, and backend validation through `/api/v1/simulations/validate`.
+It can also import YAML or JSON from pasted text or files, report unknown
+fields before apply, preview config diffs, and export full or changed-only
+configurations.
 
 ## Reports and Workers
 

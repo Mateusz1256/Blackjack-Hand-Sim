@@ -42,6 +42,9 @@ Versioning.
   light/dark theme tokens, health API client, and component tests.
 - Frontend configuration builder with dynamic betting controls, generated YAML,
   local warning summaries, backend validation, and component coverage.
+- YAML/JSON configuration import and export UI with schema versioning,
+  migration hooks, unknown-field reporting, diff previews, and changed-only
+  exports.
 
 ## [1.0.0] - 2026-07-14
 
