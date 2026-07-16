@@ -38,6 +38,8 @@ Versioning.
   cancellation, result retrieval, trace retrieval, and sanitized error mapping.
 - Comparison and batch API endpoints with task queue status, completed report
   retrieval, and JSON/CSV export responses.
+- Frontend foundation with Vite, React, TypeScript, routing, application shell,
+  light/dark theme tokens, health API client, and component tests.
 
 ## [1.0.0] - 2026-07-14
 

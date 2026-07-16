@@ -223,6 +223,22 @@ Comparison and batch workflows are also asynchronous. Use `/api/v1/comparisons`
 or `/api/v1/batches` to enqueue work, poll job status, retrieve completed
 reports, and export JSON or CSV.
 
+## Frontend
+
+The frontend foundation lives in `frontend/` and uses Vite, React, TypeScript,
+React Router, Vitest, and Testing Library.
+
+```powershell
+cd frontend
+npm install
+npm run dev
+npm test
+npm run build
+```
+
+Set `VITE_API_BASE_URL` when the API is not available through the default
+`/api/v1` path or the Vite development proxy.
+
 ## Reports and Workers
 
 Reports include streaming aggregates such as RTP, house edge, drawdown,

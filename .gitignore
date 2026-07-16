@@ -10,3 +10,11 @@ build/
 dist/
 htmlcov/
 results/
+node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
+frontend/vitest.setup.js
+frontend/vitest.setup.d.ts
