@@ -40,6 +40,8 @@ Versioning.
   retrieval, and JSON/CSV export responses.
 - Frontend foundation with Vite, React, TypeScript, routing, application shell,
   light/dark theme tokens, health API client, and component tests.
+- Frontend configuration builder with dynamic betting controls, generated YAML,
+  local warning summaries, backend validation, and component coverage.
 
 ## [1.0.0] - 2026-07-14
 

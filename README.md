@@ -239,6 +239,10 @@ npm run build
 Set `VITE_API_BASE_URL` when the API is not available through the default
 `/api/v1` path or the Vite development proxy.
 
+The configuration builder is available at `/configuration`. It covers engine
+configuration fields, dynamic betting-strategy options, warning summaries,
+generated YAML, and backend validation through `/api/v1/simulations/validate`.
+
 ## Reports and Workers
 
 Reports include streaming aggregates such as RTP, house edge, drawdown,

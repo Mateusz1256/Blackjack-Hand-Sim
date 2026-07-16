@@ -1,4 +1,4 @@
-import { Activity, Moon, Settings, Sun } from "lucide-react";
+import { Activity, Moon, Settings, SlidersHorizontal, Sun } from "lucide-react";
 import { PropsWithChildren, useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 
@@ -22,6 +22,10 @@ export function AppShell({ children }: PropsWithChildren) {
           <NavLink to="/" end>
             <Activity size={18} aria-hidden="true" />
             <span>Overview</span>
+          </NavLink>
+          <NavLink to="/configuration">
+            <SlidersHorizontal size={18} aria-hidden="true" />
+            <span>Configuration</span>
           </NavLink>
           <NavLink to="/settings">
             <Settings size={18} aria-hidden="true" />
