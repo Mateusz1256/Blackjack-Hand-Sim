@@ -8,6 +8,7 @@ from blackjack_simulator.configuration import parse_app_config
 from blackjack_simulator.engine import run_simulation, run_worker_simulations
 from blackjack_simulator.output.json_output import report_to_json
 from blackjack_simulator.statistics.collector import StatisticsCollector
+from blackjack_simulator.trace import TraceCollector
 
 CallableSimulationTask = Callable[[ProgressReporter, CancellationToken], dict[str, Any]]
 
@@ -40,6 +41,7 @@ def simulation_task(config_text: str) -> CallableSimulationTask:
             )
             shoe = app_config.create_shoe()
             card_counter = app_config.create_card_counter()
+            trace_collector = TraceCollector()
             result = run_simulation(
                 shoe=shoe,
                 config=app_config.engine_config,
@@ -49,7 +51,11 @@ def simulation_task(config_text: str) -> CallableSimulationTask:
                 card_counter=card_counter,
                 statistics_collector=collector,
                 store_rounds=False,
+                trace_collector=trace_collector,
             )
+            trace_events = trace_collector.to_dicts()
+        if app_config.simulation.workers > 1:
+            trace_events = []
 
         if result.statistics is None:
             msg = "simulation did not produce statistics"
@@ -62,6 +68,7 @@ def simulation_task(config_text: str) -> CallableSimulationTask:
             "stop_reason": (
                 result.stop_reason.value if result.stop_reason is not None else None
             ),
+            "trace_events": trace_events,
         }
 
     return task

@@ -215,6 +215,10 @@ Long-running backend work is routed through a local task queue abstraction with
 bounded progress and cancellation support. Production Redis/distributed workers
 are intentionally left for later deployment tasks.
 
+Simulation endpoints are available under `/api/v1/simulations`: validate a
+configuration, enqueue a run, poll status, cancel a job, and fetch completed
+results or trace events.
+
 ## Reports and Workers
 
 Reports include streaming aggregates such as RTP, house edge, drawdown,

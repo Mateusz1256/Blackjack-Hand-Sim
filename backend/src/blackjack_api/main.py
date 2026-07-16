@@ -4,6 +4,8 @@ from fastapi import FastAPI
 
 from blackjack_api.api.router import create_api_router
 from blackjack_api.config import BackendSettings, get_settings
+from blackjack_api.services import TaskService
+from blackjack_api.workers import LocalTaskQueue
 
 
 def create_app(settings: BackendSettings | None = None) -> FastAPI:
@@ -17,6 +19,7 @@ def create_app(settings: BackendSettings | None = None) -> FastAPI:
         ),
     )
     app.state.settings = settings
+    app.state.task_service = TaskService(queue=LocalTaskQueue())
     app.include_router(create_api_router(), prefix=settings.api_prefix)
     return app
 

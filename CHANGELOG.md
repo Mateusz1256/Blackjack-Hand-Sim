@@ -34,6 +34,8 @@ Versioning.
   history.
 - Local asynchronous task queue with bounded progress, cancellation, failure
   status, and simulation job service.
+- Simulation API endpoints for validation, enqueueing, status polling,
+  cancellation, result retrieval, trace retrieval, and sanitized error mapping.
 
 ## [1.0.0] - 2026-07-14
 
