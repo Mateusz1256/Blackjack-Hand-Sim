@@ -36,6 +36,8 @@ Versioning.
   status, and simulation job service.
 - Simulation API endpoints for validation, enqueueing, status polling,
   cancellation, result retrieval, trace retrieval, and sanitized error mapping.
+- Comparison and batch API endpoints with task queue status, completed report
+  retrieval, and JSON/CSV export responses.
 
 ## [1.0.0] - 2026-07-14
 

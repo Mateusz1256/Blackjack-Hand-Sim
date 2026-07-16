@@ -2,9 +2,9 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from blackjack_api.api.routes._jobs import job_response, require_job
 from blackjack_api.dependencies import get_task_service
 from blackjack_api.schemas.simulation import (
-    JobProgressResponse,
     SimulationJobResponse,
     SimulationResultResponse,
     SimulationStartRequest,
@@ -12,7 +12,7 @@ from blackjack_api.schemas.simulation import (
     ValidationResponse,
 )
 from blackjack_api.services import TaskService
-from blackjack_api.workers import Job, JobStatus
+from blackjack_api.workers import JobStatus
 from blackjack_simulator.configuration import ConfigurationError, parse_app_config
 
 router = APIRouter(prefix="/simulations")
@@ -55,7 +55,7 @@ def start_simulation(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(exc),
         ) from exc
-    return _job_response(job)
+    return job_response(job)
 
 
 @router.get("/{job_id}", response_model=SimulationJobResponse)
@@ -63,7 +63,7 @@ def get_simulation_status(
     job_id: str,
     task_service: TaskService = TaskServiceDependency,
 ) -> SimulationJobResponse:
-    return _job_response(_require_job(task_service, job_id))
+    return job_response(require_job(task_service, job_id))
 
 
 @router.post("/{job_id}/cancel", response_model=SimulationJobResponse)
@@ -72,9 +72,9 @@ def cancel_simulation(
     task_service: TaskService = TaskServiceDependency,
 ) -> SimulationJobResponse:
     if not task_service.cancel_job(job_id):
-        job = _require_job(task_service, job_id)
-        return _job_response(job)
-    return _job_response(_require_job(task_service, job_id))
+        job = require_job(task_service, job_id)
+        return job_response(job)
+    return job_response(require_job(task_service, job_id))
 
 
 @router.get("/{job_id}/result", response_model=SimulationResultResponse)
@@ -82,7 +82,7 @@ def get_simulation_result(
     job_id: str,
     task_service: TaskService = TaskServiceDependency,
 ) -> SimulationResultResponse:
-    job = _require_job(task_service, job_id)
+    job = require_job(task_service, job_id)
     if job.status is JobStatus.FAILED:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -110,7 +110,7 @@ def get_simulation_trace(
     job_id: str,
     task_service: TaskService = TaskServiceDependency,
 ) -> SimulationTraceResponse:
-    job = _require_job(task_service, job_id)
+    job = require_job(task_service, job_id)
     if job.status is not JobStatus.COMPLETED or job.result is None:
         raise HTTPException(
             status_code=status.HTTP_202_ACCEPTED,
@@ -119,26 +119,3 @@ def get_simulation_trace(
     raw_events = job.result.get("trace_events", [])
     events = raw_events if isinstance(raw_events, list) else []
     return SimulationTraceResponse(job_id=job.id, events=events)
-
-
-def _require_job(task_service: TaskService, job_id: str) -> Job:
-    job = task_service.get_job(job_id)
-    if job is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="job not found",
-        )
-    return job
-
-
-def _job_response(job: Job) -> SimulationJobResponse:
-    return SimulationJobResponse(
-        job_id=job.id,
-        status=job.status.value,
-        progress=JobProgressResponse(
-            current=job.progress.current,
-            total=job.progress.total,
-            message=job.progress.message,
-        ),
-        error=job.error if job.status is JobStatus.FAILED else None,
-    )

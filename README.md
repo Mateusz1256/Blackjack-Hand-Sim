@@ -219,6 +219,10 @@ Simulation endpoints are available under `/api/v1/simulations`: validate a
 configuration, enqueue a run, poll status, cancel a job, and fetch completed
 results or trace events.
 
+Comparison and batch workflows are also asynchronous. Use `/api/v1/comparisons`
+or `/api/v1/batches` to enqueue work, poll job status, retrieve completed
+reports, and export JSON or CSV.
+
 ## Reports and Workers
 
 Reports include streaming aggregates such as RTP, house edge, drawdown,

@@ -4,6 +4,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from blackjack_api.schemas.jobs import JobResponse
+
 
 class SimulationStartRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -12,21 +14,7 @@ class SimulationStartRequest(BaseModel):
     configuration_id: str | None = None
 
 
-class JobProgressResponse(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    current: int
-    total: int
-    message: str
-
-
-class SimulationJobResponse(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    job_id: str
-    status: str
-    progress: JobProgressResponse
-    error: str | None = None
+SimulationJobResponse = JobResponse
 
 
 class SimulationResultResponse(BaseModel):
