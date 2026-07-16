@@ -29,6 +29,9 @@ Versioning.
   explicit stop-loss/stop-win simulation termination reasons.
 - FastAPI backend foundation with app factory, settings, health endpoint, and
   OpenAPI metadata.
+- SQLite persistence foundation with schema migrations and repositories for
+  configurations, run metadata, preset snapshots, and reproducible config
+  history.
 
 ## [1.0.0] - 2026-07-14
 

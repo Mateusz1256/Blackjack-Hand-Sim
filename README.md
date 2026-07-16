@@ -207,6 +207,10 @@ uvicorn blackjack_api.main:app --reload
 
 Health check: `GET /api/v1/health`. OpenAPI schema: `GET /openapi.json`.
 
+The backend uses local SQLite persistence by default. Override the database
+path with `BLACKJACK_API_DATABASE_PATH`; repositories store full configuration
+snapshots so run metadata can be reproduced later.
+
 ## Reports and Workers
 
 Reports include streaming aggregates such as RTP, house edge, drawdown,

@@ -7,6 +7,7 @@ DEFAULT_APP_NAME = "Blackjack Simulator API"
 DEFAULT_VERSION = "0.1.0"
 DEFAULT_ENVIRONMENT = "local"
 DEFAULT_API_PREFIX = "/api/v1"
+DEFAULT_DATABASE_PATH = "blackjack_api.sqlite3"
 
 
 @dataclass(frozen=True, slots=True)
@@ -15,6 +16,7 @@ class BackendSettings:
     version: str = DEFAULT_VERSION
     environment: str = DEFAULT_ENVIRONMENT
     api_prefix: str = DEFAULT_API_PREFIX
+    database_path: str = DEFAULT_DATABASE_PATH
 
 
 def get_settings() -> BackendSettings:
@@ -26,4 +28,5 @@ def get_settings() -> BackendSettings:
             DEFAULT_ENVIRONMENT,
         ),
         api_prefix=getenv("BLACKJACK_API_PREFIX", DEFAULT_API_PREFIX),
+        database_path=getenv("BLACKJACK_API_DATABASE_PATH", DEFAULT_DATABASE_PATH),
     )
