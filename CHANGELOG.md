@@ -32,6 +32,8 @@ Versioning.
 - SQLite persistence foundation with schema migrations and repositories for
   configurations, run metadata, preset snapshots, and reproducible config
   history.
+- Local asynchronous task queue with bounded progress, cancellation, failure
+  status, and simulation job service.
 
 ## [1.0.0] - 2026-07-14
 

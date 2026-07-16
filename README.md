@@ -211,6 +211,10 @@ The backend uses local SQLite persistence by default. Override the database
 path with `BLACKJACK_API_DATABASE_PATH`; repositories store full configuration
 snapshots so run metadata can be reproduced later.
 
+Long-running backend work is routed through a local task queue abstraction with
+bounded progress and cancellation support. Production Redis/distributed workers
+are intentionally left for later deployment tasks.
+
 ## Reports and Workers
 
 Reports include streaming aggregates such as RTP, house edge, drawdown,
