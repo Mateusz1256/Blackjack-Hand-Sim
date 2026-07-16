@@ -27,6 +27,8 @@ Versioning.
   sets, custom YAML rules, priority conflict checks, and legal-action fallback.
 - Bankroll-percentage and Kelly-style bet sizing, bet rounding policies, and
   explicit stop-loss/stop-win simulation termination reasons.
+- FastAPI backend foundation with app factory, settings, health endpoint, and
+  OpenAPI metadata.
 
 ## [1.0.0] - 2026-07-14
 

@@ -23,7 +23,9 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Mathematics",
 ]
 dependencies = [
+  "fastapi>=0.110",
   "PyYAML>=6.0",
+  "uvicorn>=0.30",
 ]
 
 [project.scripts]
@@ -31,6 +33,7 @@ blackjack-simulator = "blackjack_simulator.cli.main:main"
 
 [project.optional-dependencies]
 dev = [
+  "httpx>=0.27",
   "mypy>=1.10",
   "pytest>=8.2",
   "ruff>=0.5",
@@ -42,18 +45,18 @@ Homepage = "https://github.com/example/blackjack-simulator"
 Issues = "https://github.com/example/blackjack-simulator/issues"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["src", "backend/src"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"
 addopts = "-ra --strict-markers --strict-config"
-testpaths = ["tests"]
-pythonpath = ["src"]
+testpaths = ["tests", "backend/tests"]
+pythonpath = ["src", "backend/src"]
 
 [tool.ruff]
 target-version = "py312"
 line-length = 88
-src = ["src", "tests"]
+src = ["src", "backend/src", "tests", "backend/tests"]
 
 [tool.ruff.lint]
 select = [
@@ -77,4 +80,4 @@ line-ending = "lf"
 python_version = "3.12"
 strict = true
 mypy_path = "src"
-packages = ["blackjack_simulator"]
+packages = ["blackjack_simulator", "blackjack_api"]

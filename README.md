@@ -196,6 +196,17 @@ blackjack-simulator presets export standard-6d-s17 standard-6d-s17.yaml
 blackjack-simulator run configs/validation_1m.yaml
 ```
 
+## Backend API
+
+Task-oriented API work starts in `backend/src/blackjack_api`. The foundation
+exposes a FastAPI app factory and a versioned health endpoint:
+
+```powershell
+uvicorn blackjack_api.main:app --reload
+```
+
+Health check: `GET /api/v1/health`. OpenAPI schema: `GET /openapi.json`.
+
 ## Reports and Workers
 
 Reports include streaming aggregates such as RTP, house edge, drawdown,
