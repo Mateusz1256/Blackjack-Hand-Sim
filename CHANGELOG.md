@@ -45,6 +45,8 @@ Versioning.
 - YAML/JSON configuration import and export UI with schema versioning,
   migration hooks, unknown-field reporting, diff previews, and changed-only
   exports.
+- Frontend simulation execution workflow with job start, progress polling,
+  cancellation, error display, and completed-result links.
 
 ## [1.0.0] - 2026-07-14
 

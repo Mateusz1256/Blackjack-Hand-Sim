@@ -244,7 +244,9 @@ configuration fields, dynamic betting-strategy options, warning summaries,
 generated YAML, and backend validation through `/api/v1/simulations/validate`.
 It can also import YAML or JSON from pasted text or files, report unknown
 fields before apply, preview config diffs, and export full or changed-only
-configurations.
+configurations. The same workspace can launch a simulation from the current
+configuration, poll job progress, cancel active jobs, and open completed
+results.
 
 ## Reports and Workers
 

@@ -16,6 +16,7 @@ import {
   ImportPreview,
   validateConfigurationForm
 } from "./configurationModel";
+import { SimulationRunPanel } from "../simulations/SimulationRunPanel";
 import { validateSimulationConfig, ValidationResponse } from "../../services/apiClient";
 
 type SectionProps = {
@@ -527,6 +528,11 @@ export function ConfigurationBuilderPage() {
       </div>
 
       <aside className="builder-sidebar">
+        <SimulationRunPanel
+          configText={yaml}
+          disabledReason={localIssues.length > 0 ? "Fix local validation issues before starting a run." : undefined}
+        />
+
         <section className="panel import-panel">
           <h2>Import</h2>
           <label className="field field-wide">

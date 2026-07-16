@@ -353,9 +353,88 @@ a {
 }
 
 .status-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin: 12px 0 0;
   color: #b42318;
   font-weight: 700;
+}
+
+.simulation-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.job-status {
+  display: grid;
+  gap: 12px;
+}
+
+.progress-track {
+  overflow: hidden;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--surface-muted);
+}
+
+.progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+}
+
+.full-width-button,
+.result-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.result-link {
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--accent-strong);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.result-link:hover {
+  border-color: var(--accent);
+}
+
+.spin-icon {
+  animation: spin 1s linear infinite;
+}
+
+.result-layout {
+  max-width: 960px;
+}
+
+.result-summary {
+  margin: 16px 0;
+}
+
+.result-json {
+  overflow: auto;
+  max-height: 560px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-muted);
+  padding: 12px;
+  color: var(--text);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .diff-list {
