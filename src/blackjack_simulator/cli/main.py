@@ -186,6 +186,8 @@ def _run(args: Namespace) -> int:
 
     if app_config.output.console:
         print(render_console_report(report))
+        if result.stop_reason is not None:
+            print(f"Stop reason: {result.stop_reason.value}")
     if app_config.output.json_file is not None:
         Path(app_config.output.json_file).write_text(
             report_to_json(report),

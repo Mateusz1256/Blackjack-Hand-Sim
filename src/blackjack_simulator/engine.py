@@ -4,6 +4,7 @@ from collections.abc import Callable
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, field
 from decimal import Decimal
+from enum import StrEnum
 from hashlib import sha256
 from random import Random
 
@@ -29,6 +30,11 @@ from blackjack_simulator.strategies.insurance import (
 from blackjack_simulator.trace import TraceCollector, TraceEventType
 
 
+class SimulationStopReason(StrEnum):
+    STOP_LOSS = "stop_loss"
+    STOP_WIN = "stop_win"
+
+
 @dataclass(frozen=True, slots=True)
 class SimulationConfig:
     rounds: int
@@ -41,6 +47,8 @@ class SimulationConfig:
     split_rules: SplitRules = field(default_factory=SplitRules)
     insurance_rules: InsuranceRules = field(default_factory=InsuranceRules)
     hole_card_rules: HoleCardRules = field(default_factory=HoleCardRules)
+    stop_loss: Decimal | None = None
+    stop_win: Decimal | None = None
 
     def __post_init__(self) -> None:
         if self.rounds < 0:
@@ -52,6 +60,12 @@ class SimulationConfig:
         if self.blackjack_payout <= 0:
             msg = "blackjack payout must be positive"
             raise ValueError(msg)
+        if self.stop_loss is not None and self.stop_loss <= 0:
+            msg = "stop loss must be positive"
+            raise ValueError(msg)
+        if self.stop_win is not None and self.stop_win <= 0:
+            msg = "stop win must be positive"
+            raise ValueError(msg)
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,6 +74,7 @@ class SimulationResult:
     initial_bankroll: Decimal
     final_bankroll: Decimal
     statistics: SimulationReport | None = None
+    stop_reason: SimulationStopReason | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -120,6 +135,7 @@ def run_simulation(
     betting = betting_strategy or FlatBettingStrategy(config.betting_amount)
     bankroll = config.initial_bankroll
     round_results: list[RoundResult] = []
+    stop_reason: SimulationStopReason | None = None
 
     for round_number in range(1, config.rounds + 1):
         bet = betting.next_bet(bankroll)
@@ -170,6 +186,9 @@ def run_simulation(
                     "hands": len(result.player_hands),
                 },
             )
+        stop_reason = _stop_reason(config, bankroll)
+        if stop_reason is not None:
+            break
 
     return SimulationResult(
         rounds=round_results,
@@ -180,6 +199,7 @@ def run_simulation(
             if statistics_collector is not None
             else None
         ),
+        stop_reason=stop_reason,
     )
 
 
@@ -242,6 +262,8 @@ def run_worker_simulations(
                 split_rules=config.split_rules,
                 insurance_rules=config.insurance_rules,
                 hole_card_rules=config.hole_card_rules,
+                stop_loss=config.stop_loss,
+                stop_win=config.stop_win,
             ),
             shoe_config=shoe_config,
             player_strategy_factory=player_strategy_factory,
@@ -272,7 +294,23 @@ def run_worker_simulations(
         initial_bankroll=config.initial_bankroll,
         final_bankroll=report.final_bankroll,
         statistics=report,
+        stop_reason=None,
     )
+
+
+def _stop_reason(
+    config: SimulationConfig,
+    bankroll: Decimal,
+) -> SimulationStopReason | None:
+    loss = config.initial_bankroll - bankroll
+    if config.stop_loss is not None and loss >= config.stop_loss:
+        return SimulationStopReason.STOP_LOSS
+
+    profit = bankroll - config.initial_bankroll
+    if config.stop_win is not None and profit >= config.stop_win:
+        return SimulationStopReason.STOP_WIN
+
+    return None
 
 
 def _run_worker_simulation_job(job: _WorkerSimulationJob) -> WorkerSimulationResult:

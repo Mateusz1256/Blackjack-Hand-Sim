@@ -1,5 +1,11 @@
 """Betting strategies."""
 
+from blackjack_simulator.betting.advanced import (
+    BankrollPercentageBettingStrategy,
+    BetRoundingMode,
+    BetRoundingPolicy,
+    KellyStyleBettingStrategy,
+)
 from blackjack_simulator.betting.base import BettingOutcome, TableLimits
 from blackjack_simulator.betting.count_spread import TrueCountSpreadBettingStrategy
 from blackjack_simulator.betting.dalembert import DAlembertBettingStrategy
@@ -9,10 +15,14 @@ from blackjack_simulator.betting.martingale import MartingaleBettingStrategy
 from blackjack_simulator.betting.paroli import ParoliBettingStrategy
 
 __all__ = [
+    "BankrollPercentageBettingStrategy",
+    "BetRoundingMode",
+    "BetRoundingPolicy",
     "BettingOutcome",
     "DAlembertBettingStrategy",
     "FibonacciBettingStrategy",
     "FlatBettingStrategy",
+    "KellyStyleBettingStrategy",
     "MartingaleBettingStrategy",
     "ParoliBettingStrategy",
     "TableLimits",

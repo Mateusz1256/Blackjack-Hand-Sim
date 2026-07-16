@@ -25,6 +25,8 @@ Versioning.
   running count.
 - Count-based basic-strategy deviations with built-in Illustrious 18/Fab 4
   sets, custom YAML rules, priority conflict checks, and legal-action fallback.
+- Bankroll-percentage and Kelly-style bet sizing, bet rounding policies, and
+  explicit stop-loss/stop-win simulation termination reasons.
 
 ## [1.0.0] - 2026-07-14
 

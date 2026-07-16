@@ -1,7 +1,7 @@
 """YAML configuration loading and validation."""
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import Decimal
 from pathlib import Path
 from random import Random
@@ -11,9 +11,13 @@ import yaml
 
 from blackjack_simulator.actions import Action
 from blackjack_simulator.betting import (
+    BankrollPercentageBettingStrategy,
+    BetRoundingMode,
+    BetRoundingPolicy,
     DAlembertBettingStrategy,
     FibonacciBettingStrategy,
     FlatBettingStrategy,
+    KellyStyleBettingStrategy,
     MartingaleBettingStrategy,
     ParoliBettingStrategy,
     TableLimits,
@@ -89,6 +93,11 @@ class BettingSettings:
     table_limits: TableLimits | None = None
     max_wins: int = 3
     spread: dict[Decimal, Decimal] | None = None
+    percentage: Decimal | None = None
+    kelly_edge: Decimal | None = None
+    kelly_variance: Decimal | None = None
+    kelly_fraction: Decimal = Decimal("1")
+    rounding: BetRoundingPolicy = field(default_factory=BetRoundingPolicy)
 
 
 @dataclass(frozen=True, slots=True)
@@ -175,6 +184,20 @@ class ConfiguredBettingStrategyFactory:
                 spread=self.settings.spread or {Decimal("0"): Decimal("1")},
                 remaining_cards_provider=lambda: shoe.remaining_cards,
                 table_limits=self.settings.table_limits,
+            )
+        if strategy_type == "bankroll_percentage":
+            return BankrollPercentageBettingStrategy(
+                percentage=self.settings.percentage or Decimal("0.01"),
+                table_limits=self.settings.table_limits,
+                rounding=self.settings.rounding,
+            )
+        if strategy_type == "kelly":
+            return KellyStyleBettingStrategy(
+                edge=self.settings.kelly_edge or Decimal("0"),
+                variance=self.settings.kelly_variance or Decimal("1"),
+                fraction=self.settings.kelly_fraction,
+                table_limits=self.settings.table_limits,
+                rounding=self.settings.rounding,
             )
 
         msg = f"unsupported player.betting_strategy.type: {strategy_type}"
@@ -346,6 +369,16 @@ def parse_app_config(
         split_rules=_parse_split_rules(rules.get("split", {})),
         insurance_rules=_parse_insurance_rules(rules.get("insurance", {})),
         hole_card_rules=_parse_hole_card_rules(rules.get("hole_card", {})),
+        stop_loss=(
+            None
+            if bankroll.get("stop_loss") is None
+            else _positive_decimal(bankroll.get("stop_loss"), "bankroll.stop_loss")
+        ),
+        stop_win=(
+            None
+            if bankroll.get("stop_win") is None
+            else _positive_decimal(bankroll.get("stop_win"), "bankroll.stop_win")
+        ),
     )
 
     return AppConfig(
@@ -547,6 +580,8 @@ def _parse_betting_settings(raw: object, bankroll: dict[str, Any]) -> BettingSet
         "fibonacci",
         "dalembert",
         "true_count_spread",
+        "bankroll_percentage",
+        "kelly",
     }
     if strategy_type not in supported:
         msg = f"unsupported player.betting_strategy.type: {data.get('type', 'flat')}"
@@ -562,6 +597,51 @@ def _parse_betting_settings(raw: object, bankroll: dict[str, Any]) -> BettingSet
             "player.betting_strategy.max_wins",
         ),
         spread=_parse_spread(data.get("spread")),
+        percentage=(
+            None
+            if data.get("percentage") is None
+            else _positive_decimal(
+                data.get("percentage"),
+                "player.betting_strategy.percentage",
+            )
+        ),
+        kelly_edge=(
+            None
+            if data.get("edge") is None
+            else _decimal(data.get("edge"), "player.betting_strategy.edge")
+        ),
+        kelly_variance=(
+            None
+            if data.get("variance") is None
+            else _positive_decimal(
+                data.get("variance"),
+                "player.betting_strategy.variance",
+            )
+        ),
+        kelly_fraction=_positive_decimal(
+            data.get("fraction", "1"),
+            "player.betting_strategy.fraction",
+        ),
+        rounding=_parse_bet_rounding(data.get("rounding", {})),
+    )
+
+
+def _parse_bet_rounding(raw: object) -> BetRoundingPolicy:
+    data = _mapping(raw, "player.betting_strategy.rounding")
+    mode = str(data.get("mode", BetRoundingMode.NONE.value))
+    normalized = mode.strip().lower().replace("-", "_").replace(" ", "_")
+    try:
+        rounding_mode = BetRoundingMode(normalized)
+    except ValueError as exc:
+        msg = f"unsupported player.betting_strategy.rounding.mode: {mode}"
+        raise ConfigurationError(msg) from exc
+
+    return BetRoundingPolicy(
+        mode=rounding_mode,
+        increment=_positive_decimal(
+            data.get("increment", "1"),
+            "player.betting_strategy.rounding.increment",
+        ),
     )
 
 
@@ -614,8 +694,12 @@ def _normalize_betting_type(raw: str) -> str:
     aliases = {
         "d_alembert": "dalembert",
         "d'alembert": "dalembert",
+        "percentage": "bankroll_percentage",
+        "bankroll_percent": "bankroll_percentage",
+        "bankroll_percentage_betting": "bankroll_percentage",
         "true_count": "true_count_spread",
         "count_spread": "true_count_spread",
+        "kelly_style": "kelly",
     }
     return aliases.get(normalized, normalized)
 
@@ -752,6 +836,14 @@ def _non_negative_decimal(value: object, field_name: str) -> Decimal:
     parsed = _decimal(value, field_name)
     if parsed < 0:
         msg = f"{field_name} must not be negative"
+        raise ConfigurationError(msg)
+    return parsed
+
+
+def _positive_decimal(value: object, field_name: str) -> Decimal:
+    parsed = _decimal(value, field_name)
+    if parsed <= 0:
+        msg = f"{field_name} must be positive"
         raise ConfigurationError(msg)
     return parsed
 

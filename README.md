@@ -106,15 +106,35 @@ player:
 ```
 
 Supported `type` values are `flat`, `martingale`, `paroli`, `fibonacci`,
-`dalembert`, and `true_count_spread`. Progressive strategies use `amount` or
-`base_amount`; `paroli` also accepts `max_wins`. Any strategy can define table
-limits:
+`dalembert`, `true_count_spread`, `bankroll_percentage`, and `kelly`.
+Progressive strategies use `amount` or `base_amount`; `paroli` also accepts
+`max_wins`. Any strategy can define table limits:
 
 ```yaml
 table_limits:
   minimum: 10
   maximum: 500
 ```
+
+Advanced bet sizing supports explicit rounding:
+
+```yaml
+bankroll:
+  initial: 1000
+  stop_loss: 250
+  stop_win: 500
+
+player:
+  betting_strategy:
+    type: bankroll_percentage
+    percentage: 0.025
+    rounding:
+      mode: floor
+      increment: 5
+```
+
+`kelly` sizing uses user-supplied assumptions (`edge`, `variance`, `fraction`);
+it is an analytical sizing rule, not a recommendation.
 
 For true-count betting:
 

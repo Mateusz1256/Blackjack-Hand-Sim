@@ -3,9 +3,11 @@ from decimal import Decimal
 import pytest
 
 from blackjack_simulator.betting import (
+    BankrollPercentageBettingStrategy,
     DAlembertBettingStrategy,
     FibonacciBettingStrategy,
     FlatBettingStrategy,
+    KellyStyleBettingStrategy,
     MartingaleBettingStrategy,
     ParoliBettingStrategy,
     TrueCountSpreadBettingStrategy,
@@ -143,6 +145,41 @@ def test_parse_config_creates_true_count_spread_betting_strategy() -> None:
     assert card_counter is not None
     assert isinstance(strategy, TrueCountSpreadBettingStrategy)
     assert strategy.next_bet(Decimal("100")) == Decimal("10")
+
+
+def test_parse_config_creates_advanced_betting_strategies() -> None:
+    percentage_text = valid_config_text().replace(
+        "type: flat\n    amount: 10",
+        "type: bankroll_percentage\n"
+        "    amount: 10\n"
+        "    percentage: 0.025\n"
+        "    rounding:\n"
+        "      mode: floor\n"
+        "      increment: 5",
+    )
+    percentage_config = parse_app_config(percentage_text)
+    percentage_strategy = percentage_config.create_betting_strategy(
+        percentage_config.create_shoe(),
+    )
+
+    kelly_text = valid_config_text().replace(
+        "type: flat\n    amount: 10",
+        "type: kelly\n"
+        "    amount: 10\n"
+        "    edge: 0.02\n"
+        "    variance: 1\n"
+        "    fraction: 0.5\n"
+        "    rounding:\n"
+        "      mode: floor\n"
+        "      increment: 1",
+    )
+    kelly_config = parse_app_config(kelly_text)
+    kelly_strategy = kelly_config.create_betting_strategy(kelly_config.create_shoe())
+
+    assert isinstance(percentage_strategy, BankrollPercentageBettingStrategy)
+    assert percentage_strategy.next_bet(Decimal("1000")) == Decimal("25")
+    assert isinstance(kelly_strategy, KellyStyleBettingStrategy)
+    assert kelly_strategy.next_bet(Decimal("1000")) == Decimal("10")
 
 
 def test_parse_config_creates_configured_card_counter() -> None:
