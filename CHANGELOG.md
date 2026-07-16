@@ -47,6 +47,8 @@ Versioning.
   exports.
 - Frontend simulation execution workflow with job start, progress polling,
   cancellation, error display, and completed-result links.
+- Results dashboard with metric cards, tabbed report inspection, downsampled
+  chart data, trace previews, and raw report data.
 
 ## [1.0.0] - 2026-07-14
 

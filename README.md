@@ -246,7 +246,9 @@ It can also import YAML or JSON from pasted text or files, report unknown
 fields before apply, preview config diffs, and export full or changed-only
 configurations. The same workspace can launch a simulation from the current
 configuration, poll job progress, cancel active jobs, and open completed
-results.
+results. Completed simulation reports open in a results dashboard with summary
+metrics, bankroll and risk views, trace previews, downsampled chart data, and
+raw JSON inspection.
 
 ## Reports and Workers
 

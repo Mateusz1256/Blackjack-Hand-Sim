@@ -1,7 +1,8 @@
 import { CircleAlert, RefreshCw } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
+import { ResultsDashboard } from "../results/ResultsDashboard";
 import { getSimulationResult, SimulationResultResponse } from "../../services/apiClient";
 
 export function SimulationResultPage() {
@@ -43,8 +44,6 @@ export function SimulationResultPage() {
     };
   }, [jobId]);
 
-  const summary = useMemo(() => buildResultSummary(result?.result), [result]);
-
   return (
     <div className="result-layout">
       <section className="panel">
@@ -60,42 +59,11 @@ export function SimulationResultPage() {
             {error}
           </p>
         )}
-        {result && (
-          <>
-            <dl className="metric-list result-summary">
-              {summary.map((entry) => (
-                <div key={entry.label}>
-                  <dt>{entry.label}</dt>
-                  <dd>{entry.value}</dd>
-                </div>
-              ))}
-            </dl>
-            <pre className="result-json">{JSON.stringify(result.result, null, 2)}</pre>
-          </>
-        )}
         <Link className="text-link" to="/configuration">
           Back to configuration
         </Link>
       </section>
+      {result && <ResultsDashboard result={result.result} jobId={jobId} />}
     </div>
   );
-}
-
-function buildResultSummary(result: Record<string, unknown> | undefined) {
-  if (!result) {
-    return [];
-  }
-
-  return [
-    ["Rounds", result.rounds],
-    ["Final bankroll", result.final_bankroll],
-    ["Net result", result.net_result],
-    ["House edge", result.house_edge],
-    ["RTP", result.rtp]
-  ]
-    .filter(([, value]) => value !== undefined && value !== null)
-    .map(([label, value]) => ({
-      label: String(label),
-      value: String(value)
-    }));
 }
