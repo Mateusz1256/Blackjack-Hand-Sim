@@ -150,5 +150,17 @@ describe("BatchPage", () => {
       "href",
       "/api/v1/batches/batch-1/export/json"
     );
+    expect(screen.getByRole("link", { name: "ZIP" })).toHaveAttribute(
+      "href",
+      "/api/v1/batches/batch-1/export/zip"
+    );
+    expect(screen.getByRole("link", { name: "PDF" })).toHaveAttribute(
+      "href",
+      "/api/v1/batches/batch-1/export/pdf"
+    );
+    expect(screen.getByRole("link", { name: "SVG" })).toHaveAttribute(
+      "href",
+      "/api/v1/batches/batch-1/export/chart.svg"
+    );
   });
 });

@@ -12,6 +12,7 @@ import {
   ComparisonMode,
   getComparisonJob,
   getComparisonResult,
+  ReportExportFormat,
   startComparison
 } from "../../services/apiClient";
 import {
@@ -47,6 +48,14 @@ const h17Yaml = configurationToYaml({
 const INITIAL_CONFIGS: ConfigDraft[] = [
   { name: "S17 baseline", text: defaultYaml },
   { name: "H17 variant", text: h17Yaml }
+];
+
+const EXPORT_FORMATS: { label: string; format: ReportExportFormat }[] = [
+  { label: "JSON", format: "json" },
+  { label: "CSV", format: "csv" },
+  { label: "ZIP", format: "zip" },
+  { label: "PDF", format: "pdf" },
+  { label: "SVG", format: "chart.svg" }
 ];
 
 function initialConfigs(): ConfigDraft[] {
@@ -281,14 +290,12 @@ export function ComparisonPage() {
             </div>
             {job && (
               <div className="export-actions" aria-label="Comparison export actions">
-                <a className="result-link" href={comparisonExportUrl(job.job_id, "json")}>
-                  <Download size={16} aria-hidden="true" />
-                  JSON
-                </a>
-                <a className="result-link" href={comparisonExportUrl(job.job_id, "csv")}>
-                  <Download size={16} aria-hidden="true" />
-                  CSV
-                </a>
+                {EXPORT_FORMATS.map((entry) => (
+                  <a className="result-link" href={comparisonExportUrl(job.job_id, entry.format)} key={entry.format}>
+                    <Download size={16} aria-hidden="true" />
+                    {entry.label}
+                  </a>
+                ))}
               </div>
             )}
           </div>

@@ -1,5 +1,7 @@
+from io import BytesIO
 from time import sleep, time
 from typing import Any
+from zipfile import ZipFile
 
 from fastapi.testclient import TestClient
 
@@ -74,6 +76,42 @@ def test_simulation_endpoint_happy_path_result_and_trace() -> None:
     assert result["report_json"].startswith("{")
     assert trace_response.status_code == 200
     assert trace_response.json()["events"][0]["type"] == "round_started"
+
+
+def test_simulation_exports_json_csv_zip_pdf_and_chart() -> None:
+    client = TestClient(create_app())
+
+    start = client.post("/api/v1/simulations", json={"config_text": CONFIG_TEXT})
+    assert start.status_code == 202
+    job_id = start.json()["job_id"]
+    wait_for_completion(client, job_id)
+
+    json_export = client.get(f"/api/v1/simulations/{job_id}/export/json")
+    csv_export = client.get(f"/api/v1/simulations/{job_id}/export/csv")
+    zip_export = client.get(f"/api/v1/simulations/{job_id}/export/zip")
+    pdf_export = client.get(f"/api/v1/simulations/{job_id}/export/pdf")
+    chart_export = client.get(f"/api/v1/simulations/{job_id}/export/chart.svg")
+
+    assert json_export.status_code == 200
+    json_payload = json_export.json()
+    assert json_payload["schema_version"] == 1
+    assert json_payload["metadata"]["report_type"] == "simulation"
+    assert json_payload["metadata"]["job_id"] == job_id
+    assert json_payload["report"]["rounds"] == 2
+
+    assert csv_export.status_code == 200
+    assert "rounds" in csv_export.text.splitlines()[0]
+    assert zip_export.status_code == 200
+    with ZipFile(BytesIO(zip_export.content)) as archive:
+        assert {
+            "report.json",
+            "metadata.csv",
+            "summary.csv",
+        }.issubset(set(archive.namelist()))
+    assert pdf_export.status_code == 200
+    assert pdf_export.content.startswith(b"%PDF-1.4")
+    assert chart_export.status_code == 200
+    assert chart_export.text.startswith("<svg")
 
 
 def test_invalid_simulation_config_returns_422() -> None:

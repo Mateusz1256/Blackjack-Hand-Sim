@@ -1,6 +1,6 @@
 """Batch simulation API routes."""
 
-from typing import Literal, cast
+from typing import cast
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
@@ -14,10 +14,12 @@ from blackjack_api.dependencies import get_task_service
 from blackjack_api.schemas.analysis import BatchStartRequest
 from blackjack_api.schemas.jobs import JobResponse, JobResultResponse
 from blackjack_api.services import TaskService
+from blackjack_api.services.export_service import ExportFormat
 from blackjack_simulator.configuration import ConfigurationError
 
 router = APIRouter(prefix="/batches")
 TaskServiceDependency = Depends(get_task_service)
+EXPORT_FORMATS = {"json", "csv", "zip", "pdf", "chart.svg"}
 
 
 @router.post("", response_model=JobResponse, status_code=status.HTTP_202_ACCEPTED)
@@ -74,9 +76,10 @@ def export_batch(
     export_format: str,
     task_service: TaskService = TaskServiceDependency,
 ) -> Response:
-    if export_format not in {"json", "csv"}:
+    if export_format not in EXPORT_FORMATS:
         raise HTTPException(status_code=404, detail="export format not found")
     return export_response(
         require_job(task_service, job_id),
-        cast("Literal['json', 'csv']", export_format),
+        "batch",
+        cast(ExportFormat, export_format),
     )

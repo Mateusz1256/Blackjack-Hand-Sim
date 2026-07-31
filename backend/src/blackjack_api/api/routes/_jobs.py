@@ -1,7 +1,5 @@
 """Shared job route helpers."""
 
-from typing import Literal
-
 from fastapi import HTTPException, Response, status
 
 from blackjack_api.schemas.jobs import (
@@ -10,6 +8,12 @@ from blackjack_api.schemas.jobs import (
     JobResultResponse,
 )
 from blackjack_api.services import TaskService
+from blackjack_api.services.export_service import (
+    ExportFormat,
+    ExportNotAvailableError,
+    ExportService,
+    ReportType,
+)
 from blackjack_api.workers import Job, JobStatus
 
 
@@ -57,14 +61,24 @@ def completed_result_response(job: Job) -> JobResultResponse:
 
 def export_response(
     job: Job,
-    export_format: Literal["json", "csv"],
+    report_type: ReportType,
+    export_format: ExportFormat,
 ) -> Response:
     completed = completed_result_response(job)
-    payload = completed.result.get(export_format)
-    if not isinstance(payload, str):
+    try:
+        content, media_type, filename = ExportService().export(
+            job_id=job.id,
+            report_type=report_type,
+            result=completed.result,
+            export_format=export_format,
+        )
+    except ExportNotAvailableError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"{export_format} export is not available",
-        )
-    media_type = "application/json" if export_format == "json" else "text/csv"
-    return Response(content=payload, media_type=media_type)
+            detail=str(exc),
+        ) from exc
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

@@ -1,4 +1,6 @@
+from io import BytesIO
 from time import sleep, time
+from zipfile import ZipFile
 
 from fastapi.testclient import TestClient
 
@@ -58,6 +60,9 @@ def test_comparison_endpoint_smoke_and_exports() -> None:
     result = client.get(f"/api/v1/comparisons/{job_id}/result")
     json_export = client.get(f"/api/v1/comparisons/{job_id}/export/json")
     csv_export = client.get(f"/api/v1/comparisons/{job_id}/export/csv")
+    zip_export = client.get(f"/api/v1/comparisons/{job_id}/export/zip")
+    pdf_export = client.get(f"/api/v1/comparisons/{job_id}/export/pdf")
+    chart_export = client.get(f"/api/v1/comparisons/{job_id}/export/chart.svg")
 
     assert result.status_code == 200
     payload = result.json()["result"]["report"]
@@ -65,8 +70,16 @@ def test_comparison_endpoint_smoke_and_exports() -> None:
     assert len(payload["results"]) == 2
     assert json_export.status_code == 200
     assert json_export.headers["content-type"].startswith("application/json")
+    assert json_export.json()["metadata"]["report_type"] == "comparison"
     assert csv_export.status_code == 200
     assert "delta_rtp" in csv_export.text.splitlines()[0]
+    assert zip_export.status_code == 200
+    with ZipFile(BytesIO(zip_export.content)) as archive:
+        assert "comparison_results.csv" in archive.namelist()
+    assert pdf_export.status_code == 200
+    assert pdf_export.content.startswith(b"%PDF-1.4")
+    assert chart_export.status_code == 200
+    assert "<svg" in chart_export.text
 
 
 def test_batch_endpoint_smoke_and_exports() -> None:
@@ -89,14 +102,26 @@ def test_batch_endpoint_smoke_and_exports() -> None:
     result = client.get(f"/api/v1/batches/{job_id}/result")
     json_export = client.get(f"/api/v1/batches/{job_id}/export/json")
     csv_export = client.get(f"/api/v1/batches/{job_id}/export/csv")
+    zip_export = client.get(f"/api/v1/batches/{job_id}/export/zip")
+    pdf_export = client.get(f"/api/v1/batches/{job_id}/export/pdf")
+    chart_export = client.get(f"/api/v1/batches/{job_id}/export/chart.svg")
 
     assert result.status_code == 200
     payload = result.json()["result"]["report"]
     assert payload["sessions_completed"] == 2
     assert payload["config"]["rounds_per_session"] == 2
     assert json_export.status_code == 200
+    assert json_export.json()["metadata"]["report_type"] == "batch"
     assert csv_export.status_code == 200
     assert "session_index" in csv_export.text.splitlines()[0]
+    assert zip_export.status_code == 200
+    with ZipFile(BytesIO(zip_export.content)) as archive:
+        assert "batch_sessions.csv" in archive.namelist()
+        assert "batch_percentiles.csv" in archive.namelist()
+    assert pdf_export.status_code == 200
+    assert pdf_export.content.startswith(b"%PDF-1.4")
+    assert chart_export.status_code == 200
+    assert "<svg" in chart_export.text
 
 
 def test_batch_cancel_endpoint_returns_job_state() -> None:

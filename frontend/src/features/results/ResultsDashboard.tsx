@@ -1,6 +1,7 @@
-import { Activity, BarChart3, CircleAlert, Database, FileJson, ScrollText, Shield, Table2, Wallet } from "lucide-react";
+import { Activity, BarChart3, CircleAlert, Database, Download, FileJson, ScrollText, Shield, Table2, Wallet } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { ReportExportFormat, simulationExportUrl } from "../../services/apiClient";
 import { buildDashboardData, DashboardData, MetricCard, ResultTab } from "./resultsModel";
 
 type ResultsDashboardProps = {
@@ -45,6 +46,7 @@ export function ResultsDashboard({ result, jobId }: ResultsDashboardProps) {
           <span>Stop reason</span>
           <strong>{dashboard.stopReason ?? "completed"}</strong>
         </div>
+        {jobId && <ReportExportActions jobId={jobId} />}
       </section>
 
       <MetricGrid metrics={dashboard.cards} />
@@ -67,6 +69,26 @@ export function ResultsDashboard({ result, jobId }: ResultsDashboardProps) {
       <section className="panel tab-panel" role="tabpanel">
         <TabContent dashboard={dashboard} activeTab={activeTab} />
       </section>
+    </div>
+  );
+}
+
+function ReportExportActions({ jobId }: { jobId: string }) {
+  const formats: { label: string; format: ReportExportFormat }[] = [
+    { label: "JSON", format: "json" },
+    { label: "CSV", format: "csv" },
+    { label: "ZIP", format: "zip" },
+    { label: "PDF", format: "pdf" },
+    { label: "SVG", format: "chart.svg" }
+  ];
+  return (
+    <div className="export-actions" aria-label="Simulation export actions">
+      {formats.map((entry) => (
+        <a className="result-link" href={simulationExportUrl(jobId, entry.format)} key={entry.format}>
+          <Download size={16} aria-hidden="true" />
+          {entry.label}
+        </a>
+      ))}
     </div>
   );
 }

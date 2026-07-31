@@ -221,7 +221,8 @@ results or trace events.
 
 Comparison and batch workflows are also asynchronous. Use `/api/v1/comparisons`
 or `/api/v1/batches` to enqueue work, poll job status, retrieve completed
-reports, and export JSON or CSV.
+reports, and export JSON, CSV, ZIP, PDF, or chart SVG files. Simulation results
+expose the same report export formats under `/api/v1/simulations/{job_id}/export/{format}`.
 
 ## Frontend
 
@@ -256,7 +257,8 @@ cancel active jobs, inspect sampled final-bankroll histograms and percentiles,
 review best/worst sessions, and summarize risk of ruin. Presets and run history
 workspaces expose built-in read-only presets, custom preset import/duplicate
 flows, config snapshot exports, filtered run history, rerun actions, comparison
-handoff, and guarded deletion.
+handoff, and guarded deletion. Completed simulation, comparison, and batch
+views expose JSON, CSV, ZIP, PDF, and SVG chart export actions.
 
 ## Reports and Workers
 

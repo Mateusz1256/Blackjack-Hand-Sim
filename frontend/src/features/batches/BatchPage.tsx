@@ -8,6 +8,7 @@ import {
   cancelBatch,
   getBatchJob,
   getBatchResult,
+  ReportExportFormat,
   startBatch
 } from "../../services/apiClient";
 import { BatchData, BatchSessionRow, buildBatchData, formatBatchMetric, formatRate } from "./batchModel";
@@ -19,6 +20,14 @@ const DEFAULT_CONFIG_TEXT = configurationToYaml({
     rounds: 1000
   }
 });
+
+const EXPORT_FORMATS: { label: string; format: ReportExportFormat }[] = [
+  { label: "JSON", format: "json" },
+  { label: "CSV", format: "csv" },
+  { label: "ZIP", format: "zip" },
+  { label: "PDF", format: "pdf" },
+  { label: "SVG", format: "chart.svg" }
+];
 
 export function BatchPage() {
   const [configText, setConfigText] = useState(DEFAULT_CONFIG_TEXT);
@@ -182,14 +191,12 @@ function BatchResults({ batch, jobId }: { batch: BatchData; jobId: string }) {
           </p>
         </div>
         <div className="export-actions" aria-label="Batch export actions">
-          <a className="result-link" href={batchExportUrl(jobId, "json")}>
-            <Download size={16} aria-hidden="true" />
-            JSON
-          </a>
-          <a className="result-link" href={batchExportUrl(jobId, "csv")}>
-            <Download size={16} aria-hidden="true" />
-            CSV
-          </a>
+          {EXPORT_FORMATS.map((entry) => (
+            <a className="result-link" href={batchExportUrl(jobId, entry.format)} key={entry.format}>
+              <Download size={16} aria-hidden="true" />
+              {entry.label}
+            </a>
+          ))}
         </div>
       </div>
 

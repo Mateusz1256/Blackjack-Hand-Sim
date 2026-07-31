@@ -35,6 +35,14 @@ describe("ResultsDashboard", () => {
     expect(screen.getByText("Results Dashboard")).toBeInTheDocument();
     expect(screen.getAllByText("Final bankroll").length).toBeGreaterThan(0);
     expect(screen.getByLabelText("Downsampled bankroll chart")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "PDF" })).toHaveAttribute(
+      "href",
+      "/api/v1/simulations/job-1/export/pdf"
+    );
+    expect(screen.getByRole("link", { name: "SVG" })).toHaveAttribute(
+      "href",
+      "/api/v1/simulations/job-1/export/chart.svg"
+    );
   });
 
   it("supports tab navigation", async () => {

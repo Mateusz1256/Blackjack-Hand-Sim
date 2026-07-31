@@ -98,6 +98,8 @@ export interface RunHistoryListResponse {
   runs: RunHistoryRecord[];
 }
 
+export type ReportExportFormat = "json" | "csv" | "zip" | "pdf" | "chart.svg";
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api/v1";
 
 async function readError(response: Response, fallback: string): Promise<string> {
@@ -206,7 +208,11 @@ export async function getComparisonResult(jobId: string): Promise<ComparisonResu
   return (await response.json()) as ComparisonResultResponse;
 }
 
-export function comparisonExportUrl(jobId: string, exportFormat: "json" | "csv"): string {
+export function simulationExportUrl(jobId: string, exportFormat: ReportExportFormat): string {
+  return `${API_BASE_URL}/simulations/${jobId}/export/${exportFormat}`;
+}
+
+export function comparisonExportUrl(jobId: string, exportFormat: ReportExportFormat): string {
   return `${API_BASE_URL}/comparisons/${jobId}/export/${exportFormat}`;
 }
 
@@ -250,7 +256,7 @@ export async function getBatchResult(jobId: string): Promise<BatchResultResponse
   return (await response.json()) as BatchResultResponse;
 }
 
-export function batchExportUrl(jobId: string, exportFormat: "json" | "csv"): string {
+export function batchExportUrl(jobId: string, exportFormat: ReportExportFormat): string {
   return `${API_BASE_URL}/batches/${jobId}/export/${exportFormat}`;
 }
 

@@ -1,8 +1,10 @@
 """Simulation API routes."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import cast
 
-from blackjack_api.api.routes._jobs import job_response, require_job
+from fastapi import APIRouter, Depends, HTTPException, Response, status
+
+from blackjack_api.api.routes._jobs import export_response, job_response, require_job
 from blackjack_api.dependencies import get_task_service
 from blackjack_api.schemas.simulation import (
     SimulationJobResponse,
@@ -12,11 +14,13 @@ from blackjack_api.schemas.simulation import (
     ValidationResponse,
 )
 from blackjack_api.services import TaskService
+from blackjack_api.services.export_service import ExportFormat
 from blackjack_api.workers import JobStatus
 from blackjack_simulator.configuration import ConfigurationError, parse_app_config
 
 router = APIRouter(prefix="/simulations")
 TaskServiceDependency = Depends(get_task_service)
+EXPORT_FORMATS = {"json", "csv", "zip", "pdf", "chart.svg"}
 
 
 @router.post("/validate", response_model=ValidationResponse)
@@ -102,6 +106,21 @@ def get_simulation_result(
         job_id=job.id,
         status=job.status.value,
         result=job.result,
+    )
+
+
+@router.get("/{job_id}/export/{export_format}")
+def export_simulation(
+    job_id: str,
+    export_format: str,
+    task_service: TaskService = TaskServiceDependency,
+) -> Response:
+    if export_format not in EXPORT_FORMATS:
+        raise HTTPException(status_code=404, detail="export format not found")
+    return export_response(
+        require_job(task_service, job_id),
+        "simulation",
+        cast(ExportFormat, export_format),
     )
 
 
