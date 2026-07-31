@@ -248,7 +248,10 @@ configurations. The same workspace can launch a simulation from the current
 configuration, poll job progress, cancel active jobs, and open completed
 results. Completed simulation reports open in a results dashboard with summary
 metrics, bankroll and risk views, trace previews, downsampled chart data, and
-raw JSON inspection.
+raw JSON inspection. The comparisons workspace can run two-configuration
+analyses, select a baseline, tune rounds/seeds/workers, inspect sortable
+baseline deltas, hide table columns, view delta charts, and open JSON/CSV
+exports.
 
 ## Reports and Workers
 

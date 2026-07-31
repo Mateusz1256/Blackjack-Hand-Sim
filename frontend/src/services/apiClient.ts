@@ -33,6 +33,25 @@ export interface SimulationResultResponse {
   result: Record<string, unknown>;
 }
 
+export type ComparisonMode = "independent_seeds" | "common_random_numbers";
+
+export interface ComparisonStartRequest {
+  configs: string[];
+  names?: string[];
+  mode: ComparisonMode;
+  rounds?: number;
+  seed?: number;
+  workers?: number;
+}
+
+export type ComparisonJobResponse = SimulationJobResponse;
+
+export interface ComparisonResultResponse {
+  job_id: string;
+  status: JobStatus;
+  result: Record<string, unknown>;
+}
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api/v1";
 
 async function readError(response: Response, fallback: string): Promise<string> {
@@ -106,4 +125,41 @@ export async function getSimulationResult(jobId: string): Promise<SimulationResu
     throw new Error(await readError(response, `Simulation result failed with status ${response.status}`));
   }
   return (await response.json()) as SimulationResultResponse;
+}
+
+
+export async function startComparison(
+  request: ComparisonStartRequest
+): Promise<ComparisonJobResponse> {
+  const response = await fetch(`${API_BASE_URL}/comparisons`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(request)
+  });
+  if (!response.ok) {
+    throw new Error(await readError(response, `Comparison start failed with status ${response.status}`));
+  }
+  return (await response.json()) as ComparisonJobResponse;
+}
+
+export async function getComparisonJob(jobId: string): Promise<ComparisonJobResponse> {
+  const response = await fetch(`${API_BASE_URL}/comparisons/${jobId}`);
+  if (!response.ok) {
+    throw new Error(await readError(response, `Comparison status failed with status ${response.status}`));
+  }
+  return (await response.json()) as ComparisonJobResponse;
+}
+
+export async function getComparisonResult(jobId: string): Promise<ComparisonResultResponse> {
+  const response = await fetch(`${API_BASE_URL}/comparisons/${jobId}/result`);
+  if (!response.ok) {
+    throw new Error(await readError(response, `Comparison result failed with status ${response.status}`));
+  }
+  return (await response.json()) as ComparisonResultResponse;
+}
+
+export function comparisonExportUrl(jobId: string, exportFormat: "json" | "csv"): string {
+  return `${API_BASE_URL}/comparisons/${jobId}/export/${exportFormat}`;
 }

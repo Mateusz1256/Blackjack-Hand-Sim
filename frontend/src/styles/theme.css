@@ -690,3 +690,111 @@ a {
     padding: 18px;
   }
 }
+
+
+.comparison-layout,
+.comparison-results {
+  display: grid;
+  gap: 18px;
+}
+
+.comparison-setup {
+  display: grid;
+  gap: 14px;
+}
+
+.comparison-controls {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.comparison-note {
+  max-width: 920px;
+  margin: 0;
+}
+
+.comparison-config-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.column-toggle-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.export-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(110px, 1fr));
+  gap: 10px;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.comparison-table th button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-weight: 800;
+  padding: 0;
+}
+
+.delta-chart {
+  display: grid;
+  gap: 12px;
+}
+
+.delta-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 180px) minmax(0, 1fr) 110px;
+  align-items: center;
+  gap: 12px;
+}
+
+.delta-track {
+  overflow: hidden;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--surface-muted);
+}
+
+.delta-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.delta-track i.positive {
+  background: var(--accent);
+}
+
+.delta-track i.negative {
+  background: #b42318;
+}
+
+.delta-row strong {
+  text-align: right;
+}
+
+@media (max-width: 980px) {
+  .comparison-controls,
+  .comparison-config-grid,
+  .column-toggle-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .delta-row {
+    grid-template-columns: 1fr;
+  }
+
+  .delta-row strong {
+    text-align: left;
+  }
+}

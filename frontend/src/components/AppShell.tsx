@@ -1,4 +1,4 @@
-import { Activity, Moon, Settings, SlidersHorizontal, Sun } from "lucide-react";
+import { Activity, BarChart3, Moon, Settings, SlidersHorizontal, Sun } from "lucide-react";
 import { PropsWithChildren, useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 
@@ -26,6 +26,10 @@ export function AppShell({ children }: PropsWithChildren) {
           <NavLink to="/configuration">
             <SlidersHorizontal size={18} aria-hidden="true" />
             <span>Configuration</span>
+          </NavLink>
+          <NavLink to="/comparisons">
+            <BarChart3 size={18} aria-hidden="true" />
+            <span>Comparisons</span>
           </NavLink>
           <NavLink to="/settings">
             <Settings size={18} aria-hidden="true" />
