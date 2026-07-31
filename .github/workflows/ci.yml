@@ -34,6 +34,12 @@ jobs:
       - name: Pytest
         run: pytest
 
+      - name: Docker compose config
+        run: docker compose config --quiet
+
+      - name: Docker build smoke
+        run: docker compose build backend frontend worker
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:

@@ -1,0 +1,49 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      BLACKJACK_API_ENVIRONMENT: compose
+      BLACKJACK_API_DATABASE_PATH: /data/blackjack_api.sqlite3
+    volumes:
+      - blackjack-data:/data
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import json, urllib.request; data=json.load(urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=3)); raise SystemExit(0 if data.get('status') == 'ok' else 1)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: ["python", "-m", "blackjack_api.worker"]
+    environment:
+      BLACKJACK_API_ENVIRONMENT: compose
+      BLACKJACK_API_DATABASE_PATH: /data/blackjack_api.sqlite3
+    volumes:
+      - blackjack-data:/data
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  blackjack-data:

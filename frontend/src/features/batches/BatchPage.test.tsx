@@ -110,7 +110,7 @@ describe("BatchPage", () => {
 
   it("validates the batch form before submission", async () => {
     const user = userEvent.setup();
-    render(<BatchPage pollIntervalMs={60_000} />);
+    render(<BatchPage />);
 
     await user.clear(screen.getByLabelText("Sessions"));
     await user.type(screen.getByLabelText("Sessions"), "0");
@@ -122,7 +122,7 @@ describe("BatchPage", () => {
 
   it("shows progress and cancels an active batch", async () => {
     const user = userEvent.setup();
-    render(<BatchPage />);
+    render(<BatchPage pollIntervalMs={60_000} />);
 
     await user.click(screen.getByRole("button", { name: "Run batch" }));
 

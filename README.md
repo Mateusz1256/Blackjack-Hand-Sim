@@ -263,6 +263,20 @@ views expose JSON, CSV, ZIP, PDF, and SVG chart export actions.
 Browser-level E2E coverage uses Playwright with mocked deterministic API
 responses for the main user flows and basic accessibility checks.
 
+## Docker Compose
+
+Local container deployment is available through Docker Compose:
+
+```powershell
+docker compose up --build
+```
+
+The panel is served at `http://localhost:8080`, and the backend health endpoint
+is available at `http://localhost:8000/api/v1/health`. Compose stores SQLite
+data in the `blackjack-data` volume and uses `/data/blackjack_api.sqlite3`
+inside the backend and worker containers. See `docs/deployment.md` for service
+and environment details.
+
 ## Reports and Workers
 
 Reports include streaming aggregates such as RTP, house edge, drawdown,
