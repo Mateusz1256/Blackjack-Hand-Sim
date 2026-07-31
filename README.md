@@ -251,7 +251,9 @@ metrics, bankroll and risk views, trace previews, downsampled chart data, and
 raw JSON inspection. The comparisons workspace can run two-configuration
 analyses, select a baseline, tune rounds/seeds/workers, inspect sortable
 baseline deltas, hide table columns, view delta charts, and open JSON/CSV
-exports.
+exports. The batch workspace can run many independent sessions, track progress,
+cancel active jobs, inspect sampled final-bankroll histograms and percentiles,
+review best/worst sessions, and summarize risk of ruin.
 
 ## Reports and Workers
 

@@ -52,6 +52,22 @@ export interface ComparisonResultResponse {
   result: Record<string, unknown>;
 }
 
+export interface BatchStartRequest {
+  config_text: string;
+  sessions: number;
+  rounds_per_session: number;
+  base_seed?: number;
+  configuration_id?: string;
+}
+
+export type BatchJobResponse = SimulationJobResponse;
+
+export interface BatchResultResponse {
+  job_id: string;
+  status: JobStatus;
+  result: Record<string, unknown>;
+}
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api/v1";
 
 async function readError(response: Response, fallback: string): Promise<string> {
@@ -162,4 +178,48 @@ export async function getComparisonResult(jobId: string): Promise<ComparisonResu
 
 export function comparisonExportUrl(jobId: string, exportFormat: "json" | "csv"): string {
   return `${API_BASE_URL}/comparisons/${jobId}/export/${exportFormat}`;
+}
+
+export async function startBatch(request: BatchStartRequest): Promise<BatchJobResponse> {
+  const response = await fetch(`${API_BASE_URL}/batches`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(request)
+  });
+  if (!response.ok) {
+    throw new Error(await readError(response, `Batch start failed with status ${response.status}`));
+  }
+  return (await response.json()) as BatchJobResponse;
+}
+
+export async function getBatchJob(jobId: string): Promise<BatchJobResponse> {
+  const response = await fetch(`${API_BASE_URL}/batches/${jobId}`);
+  if (!response.ok) {
+    throw new Error(await readError(response, `Batch status failed with status ${response.status}`));
+  }
+  return (await response.json()) as BatchJobResponse;
+}
+
+export async function cancelBatch(jobId: string): Promise<BatchJobResponse> {
+  const response = await fetch(`${API_BASE_URL}/batches/${jobId}/cancel`, {
+    method: "POST"
+  });
+  if (!response.ok) {
+    throw new Error(await readError(response, `Batch cancel failed with status ${response.status}`));
+  }
+  return (await response.json()) as BatchJobResponse;
+}
+
+export async function getBatchResult(jobId: string): Promise<BatchResultResponse> {
+  const response = await fetch(`${API_BASE_URL}/batches/${jobId}/result`);
+  if (!response.ok) {
+    throw new Error(await readError(response, `Batch result failed with status ${response.status}`));
+  }
+  return (await response.json()) as BatchResultResponse;
+}
+
+export function batchExportUrl(jobId: string, exportFormat: "json" | "csv"): string {
+  return `${API_BASE_URL}/batches/${jobId}/export/${exportFormat}`;
 }

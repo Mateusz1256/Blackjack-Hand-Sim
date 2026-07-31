@@ -99,6 +99,28 @@ def test_batch_endpoint_smoke_and_exports() -> None:
     assert "session_index" in csv_export.text.splitlines()[0]
 
 
+def test_batch_cancel_endpoint_returns_job_state() -> None:
+    client = TestClient(create_app())
+
+    start = client.post(
+        "/api/v1/batches",
+        json={
+            "config_text": config_text(),
+            "sessions": 20,
+            "rounds_per_session": 20,
+            "base_seed": 42,
+        },
+    )
+    assert start.status_code == 202
+    job_id = start.json()["job_id"]
+
+    response = client.post(f"/api/v1/batches/{job_id}/cancel")
+
+    assert response.status_code == 200
+    assert response.json()["job_id"] == job_id
+    assert response.json()["status"] in {"cancelled", "completed", "running"}
+
+
 def test_comparison_requires_two_configs() -> None:
     client = TestClient(create_app())
 

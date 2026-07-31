@@ -783,10 +783,109 @@ a {
   text-align: right;
 }
 
+.batch-layout,
+.batch-results {
+  display: grid;
+  gap: 18px;
+}
+
+.batch-setup {
+  display: grid;
+  gap: 14px;
+}
+
+.batch-controls {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.batch-table-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.histogram-chart {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(28px, 1fr));
+  align-items: end;
+  gap: 8px;
+  min-height: 240px;
+}
+
+.histogram-chart div {
+  display: grid;
+  align-items: end;
+  gap: 8px;
+  height: 220px;
+  min-width: 0;
+}
+
+.histogram-chart span {
+  display: block;
+  min-height: 6px;
+  border-radius: 4px 4px 0 0;
+  background: var(--accent);
+}
+
+.histogram-chart small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.7rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.percentile-chart {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 10px;
+}
+
+.percentile-chart div {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.percentile-chart span,
+.percentile-chart em {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.percentile-chart strong {
+  overflow-wrap: anywhere;
+}
+
+.risk-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.risk-meter {
+  overflow: hidden;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--surface-muted);
+}
+
+.risk-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #b42318;
+}
+
 @media (max-width: 980px) {
   .comparison-controls,
   .comparison-config-grid,
-  .column-toggle-grid {
+  .column-toggle-grid,
+  .batch-controls,
+  .batch-table-grid {
     grid-template-columns: 1fr;
   }
 

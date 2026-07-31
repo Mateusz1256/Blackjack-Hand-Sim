@@ -49,6 +49,17 @@ def get_batch_status(
     return job_response(require_job(task_service, job_id))
 
 
+@router.post("/{job_id}/cancel", response_model=JobResponse)
+def cancel_batch(
+    job_id: str,
+    task_service: TaskService = TaskServiceDependency,
+) -> JobResponse:
+    if not task_service.cancel_job(job_id):
+        job = require_job(task_service, job_id)
+        return job_response(job)
+    return job_response(require_job(task_service, job_id))
+
+
 @router.get("/{job_id}/result", response_model=JobResultResponse)
 def get_batch_result(
     job_id: str,
