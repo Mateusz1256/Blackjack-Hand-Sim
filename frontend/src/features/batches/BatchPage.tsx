@@ -29,7 +29,7 @@ const EXPORT_FORMATS: { label: string; format: ReportExportFormat }[] = [
   { label: "SVG", format: "chart.svg" }
 ];
 
-export function BatchPage() {
+export function BatchPage({ pollIntervalMs = 250 }: { pollIntervalMs?: number }) {
   const [configText, setConfigText] = useState(DEFAULT_CONFIG_TEXT);
   const [sessions, setSessions] = useState(25);
   const [roundsPerSession, setRoundsPerSession] = useState(1000);
@@ -76,13 +76,13 @@ export function BatchPage() {
             setIsPolling(false);
           }
         });
-    }, 250);
+    }, pollIntervalMs);
 
     return () => {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [isActiveJob, isPolling, job]);
+  }, [isActiveJob, isPolling, job, pollIntervalMs]);
 
   const runBatch = async () => {
     if (formErrors.length > 0) {

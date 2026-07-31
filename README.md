@@ -235,6 +235,7 @@ npm install
 npm run dev
 npm test
 npm run build
+npm run e2e
 ```
 
 Set `VITE_API_BASE_URL` when the API is not available through the default
@@ -259,6 +260,8 @@ workspaces expose built-in read-only presets, custom preset import/duplicate
 flows, config snapshot exports, filtered run history, rerun actions, comparison
 handoff, and guarded deletion. Completed simulation, comparison, and batch
 views expose JSON, CSV, ZIP, PDF, and SVG chart export actions.
+Browser-level E2E coverage uses Playwright with mocked deterministic API
+responses for the main user flows and basic accessibility checks.
 
 ## Reports and Workers
 

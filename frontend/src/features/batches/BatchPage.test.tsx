@@ -110,7 +110,7 @@ describe("BatchPage", () => {
 
   it("validates the batch form before submission", async () => {
     const user = userEvent.setup();
-    render(<BatchPage />);
+    render(<BatchPage pollIntervalMs={60_000} />);
 
     await user.clear(screen.getByLabelText("Sessions"));
     await user.type(screen.getByLabelText("Sessions"), "0");

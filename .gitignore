@@ -13,6 +13,10 @@ results/
 node_modules/
 frontend/dist/
 frontend/coverage/
+frontend/.vite-cache/
+frontend/.playwright-results/
+frontend/playwright-report/
+frontend/test-results/
 frontend/*.tsbuildinfo
 frontend/vite.config.js
 frontend/vite.config.d.ts

@@ -13,12 +13,12 @@ export function AppShell({ children }: PropsWithChildren) {
 
   return (
     <div className="app-shell">
-      <aside className="sidebar" aria-label="Primary navigation">
+      <aside className="sidebar">
         <div className="brand">
           <Activity size={22} aria-hidden="true" />
           <span>Blackjack Simulator</span>
         </div>
-        <nav className="nav-list">
+        <nav className="nav-list" aria-label="Primary navigation">
           <NavLink to="/" end>
             <Activity size={18} aria-hidden="true" />
             <span>Overview</span>
