@@ -49,6 +49,32 @@ Versioning.
   cancellation, error display, and completed-result links.
 - Results dashboard with metric cards, tabbed report inspection, downsampled
   chart data, trace previews, and raw report data.
+- Frontend comparison workspace with baseline selection, sortable deltas,
+  column visibility controls, delta charting, and report export links.
+- Frontend batch workspace with progress, cancellation, histograms,
+  percentiles, session tables, and risk-of-ruin summaries.
+- Frontend preset and run history workspaces for built-in/custom presets,
+  guarded deletion, rerun, comparison handoff, and config snapshot export.
+- Report export service for simulation, comparison, and batch reports in JSON,
+  CSV, ZIP, structured PDF, and chart SVG formats.
+- Playwright E2E coverage for configuration, import, simulation, result export,
+  comparison, batch, keyboard navigation, and basic accessibility checks.
+- Local Docker Compose deployment with backend, frontend, worker container, Nginx
+  API proxy, SQLite volume, healthchecks, and CI Docker build smoke.
+
+### Validation
+
+- Full Python, backend, frontend unit, E2E, audit, and representative worker
+  simulation validation passed locally for the post-MVP release candidate.
+
+### Known Limitations
+
+- The current task queue is local to the backend process; the worker container
+  is a deployment placeholder until a distributed queue is introduced.
+- Docker Compose build and health smoke are configured in CI, but local Docker
+  validation requires Docker to be installed on the developer machine.
+- Audit card-identity checking is skipped because rank-only cards do not expose
+  unique physical card identities yet.
 
 ## [1.0.0] - 2026-07-14
 

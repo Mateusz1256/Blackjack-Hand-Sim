@@ -301,6 +301,23 @@ ruff format --check .
 mypy src
 ```
 
+Frontend and browser validation:
+
+```powershell
+cd frontend
+npm run lint
+npm test
+npm run build
+npm run e2e
+```
+
+Representative CLI validation:
+
+```powershell
+blackjack-simulator audit configs/standard_6_deck_s17.yaml --rounds 100
+blackjack-simulator run configs/validation_1m.yaml --rounds 2000 --workers 2
+```
+
 ## Roadmap
 
 Implementation is split into task files under `tasks/`. Each task should be
