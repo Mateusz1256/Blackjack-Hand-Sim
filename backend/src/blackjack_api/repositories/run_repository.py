@@ -99,6 +99,39 @@ class RunRepository:
             return None
         return RunRecord(*row)
 
+    def list(
+        self,
+        *,
+        run_type: str | None = None,
+        status: str | None = None,
+        limit: int = 50,
+    ) -> list[RunRecord]:
+        if limit <= 0:
+            msg = "limit must be positive"
+            raise ValueError(msg)
+        clauses: list[str] = []
+        params: list[str | int] = []
+        if run_type:
+            clauses.append("run_type = ?")
+            params.append(run_type)
+        if status:
+            clauses.append("status = ?")
+            params.append(status)
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        rows = self._connection.execute(
+            f"""
+            SELECT
+                id, configuration_id, run_type, status, seed, rounds,
+                config_snapshot, result_json, created_at, updated_at
+            FROM runs
+            {where}
+            ORDER BY created_at DESC
+            LIMIT ?
+            """,
+            (*params, limit),
+        ).fetchall()
+        return [RunRecord(*row) for row in rows]
+
     def delete(self, run_id: str) -> bool:
         cursor = self._connection.execute(
             "DELETE FROM runs WHERE id = ?",

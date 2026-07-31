@@ -49,8 +49,23 @@ const INITIAL_CONFIGS: ConfigDraft[] = [
   { name: "H17 variant", text: h17Yaml }
 ];
 
+function initialConfigs(): ConfigDraft[] {
+  const stored = window.sessionStorage.getItem("blackjack.compareConfig");
+  if (!stored) {
+    return INITIAL_CONFIGS;
+  }
+  window.sessionStorage.removeItem("blackjack.compareConfig");
+  return [
+    INITIAL_CONFIGS[0],
+    {
+      name: "History snapshot",
+      text: stored
+    }
+  ];
+}
+
 export function ComparisonPage() {
-  const [configs, setConfigs] = useState<ConfigDraft[]>(INITIAL_CONFIGS);
+  const [configs, setConfigs] = useState<ConfigDraft[]>(initialConfigs);
   const [baselineIndex, setBaselineIndex] = useState(0);
   const [rounds, setRounds] = useState(10000);
   const [seed, setSeed] = useState(123456);

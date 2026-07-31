@@ -100,6 +100,46 @@ class PresetRepository:
             updated_at=row[6],
         )
 
+    def list(
+        self,
+        *,
+        category: str | None = None,
+        include_read_only: bool = True,
+    ) -> list[PresetRecord]:
+        clauses: list[str] = []
+        if not include_read_only:
+            clauses.append("read_only = 0")
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        rows = self._connection.execute(
+            f"""
+            SELECT
+                id, name, metadata_json, config_text, read_only, created_at,
+                updated_at
+            FROM presets
+            {where}
+            ORDER BY read_only DESC, name ASC
+            """,
+        ).fetchall()
+        records = [
+            PresetRecord(
+                id=row[0],
+                name=row[1],
+                metadata_json=row[2],
+                config_text=row[3],
+                read_only=bool(row[4]),
+                created_at=row[5],
+                updated_at=row[6],
+            )
+            for row in rows
+        ]
+        if category:
+            return [
+                record
+                for record in records
+                if str(record.metadata().get("category", "")) == category
+            ]
+        return records
+
     def delete(self, preset_id: str) -> bool:
         existing = self.get(preset_id)
         if existing is None:

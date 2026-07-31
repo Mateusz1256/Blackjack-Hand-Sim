@@ -6,7 +6,7 @@ from sqlite3 import connect as sqlite_connect
 
 
 def connect(database_path: str | Path) -> Connection:
-    connection = sqlite_connect(str(database_path))
+    connection = sqlite_connect(str(database_path), check_same_thread=False)
     connection.row_factory = None
     connection.execute("PRAGMA foreign_keys = ON")
     return connection

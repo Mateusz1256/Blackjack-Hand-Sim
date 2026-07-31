@@ -1,4 +1,4 @@
-import { Activity, BarChart3, Layers3, Moon, Settings, SlidersHorizontal, Sun } from "lucide-react";
+import { Activity, BarChart3, History, Layers3, Moon, Settings, SlidersHorizontal, Star, Sun } from "lucide-react";
 import { PropsWithChildren, useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 
@@ -34,6 +34,14 @@ export function AppShell({ children }: PropsWithChildren) {
           <NavLink to="/batches">
             <Layers3 size={18} aria-hidden="true" />
             <span>Batches</span>
+          </NavLink>
+          <NavLink to="/presets">
+            <Star size={18} aria-hidden="true" />
+            <span>Presets</span>
+          </NavLink>
+          <NavLink to="/history">
+            <History size={18} aria-hidden="true" />
+            <span>History</span>
           </NavLink>
           <NavLink to="/settings">
             <Settings size={18} aria-hidden="true" />

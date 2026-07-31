@@ -253,7 +253,10 @@ analyses, select a baseline, tune rounds/seeds/workers, inspect sortable
 baseline deltas, hide table columns, view delta charts, and open JSON/CSV
 exports. The batch workspace can run many independent sessions, track progress,
 cancel active jobs, inspect sampled final-bankroll histograms and percentiles,
-review best/worst sessions, and summarize risk of ruin.
+review best/worst sessions, and summarize risk of ruin. Presets and run history
+workspaces expose built-in read-only presets, custom preset import/duplicate
+flows, config snapshot exports, filtered run history, rerun actions, comparison
+handoff, and guarded deletion.
 
 ## Reports and Workers
 
